@@ -94,44 +94,21 @@ def upsert_run_issue(
     run_marker: str,
     issue_body_path: Path,
 ) -> int:
-    issues = _run_gh_json(
-        [
-            "issue",
-            "list",
-            "--repo",
-            repo,
-            "--state",
-            "all",
-            "--limit",
-            "100",
-            "--json",
-            "number,title,body",
-        ]
-    )
-
-    if not isinstance(issues, list):
-        raise PublishError("gh issue list 返回了异常结果")
-
-    # 通过 HTML 注释里的 run_marker 做幂等匹配，workflow 重跑时会更新原 issue，而不是重复创建。
-    for issue in issues:
-        if not isinstance(issue, dict):
-            continue
-        body = str(issue.get("body", ""))
-        if f"<!-- {run_marker} -->" in body:
-            issue_number = int(issue["number"])
-            _run_gh(
-                [
-                    "api",
-                    f"repos/{repo}/issues/{issue_number}",
-                    "--method",
-                    "PATCH",
-                    "-f",
-                    f"title={issue_title}",
-                    "-F",
-                    f"body=@{issue_body_path}",
-                ]
-            )
-            return issue_number
+    issue_number = _find_run_issue_number(repo, run_marker)
+    if issue_number is not None:
+        _run_gh(
+            [
+                "api",
+                f"repos/{repo}/issues/{issue_number}",
+                "--method",
+                "PATCH",
+                "-f",
+                f"title={issue_title}",
+                "-F",
+                f"body=@{issue_body_path}",
+            ]
+        )
+        return issue_number
 
     created = _run_gh_json(
         [
@@ -146,6 +123,44 @@ def upsert_run_issue(
     if not isinstance(created, dict) or "number" not in created:
         raise PublishError("创建 issue 失败，未返回 issue number")
     return int(created["number"])
+
+
+def _find_run_issue_number(repo: str, run_marker: str) -> int | None:
+    marker = f"<!-- {run_marker} -->"
+    page = 1
+
+    while True:
+        issues = _run_gh_json(
+            [
+                "api",
+                f"repos/{repo}/issues",
+                "-f",
+                "state=all",
+                "-f",
+                "per_page=100",
+                "-f",
+                f"page={page}",
+            ]
+        )
+        if not isinstance(issues, list):
+            raise PublishError("gh issue 查询返回了异常结果")
+        if not issues:
+            return None
+
+        for issue in issues:
+            if not isinstance(issue, dict) or "pull_request" in issue:
+                continue
+            body = str(issue.get("body", ""))
+            if marker not in body:
+                continue
+            issue_number = issue.get("number")
+            if isinstance(issue_number, int) and not isinstance(issue_number, bool):
+                return issue_number
+            raise PublishError("命中的 issue 缺少有效的 number 字段")
+
+        if len(issues) < 100:
+            return None
+        page += 1
 
 
 def _resolve_repo(repo: str | None) -> str:
