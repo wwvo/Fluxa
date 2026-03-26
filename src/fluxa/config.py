@@ -70,7 +70,7 @@ def load_config(path: Path) -> AppConfig:
                 feed_url,
                 explicit_fallback_urls,
             ),
-            title=_read_optional_str(item, "title"),
+            title=_read_optional_str(item, "title", prefix=f"feeds[{index}]"),
             enabled=_read_bool(item, "enabled", defaults.enabled),
             timeout_seconds=_read_int(
                 item,
@@ -112,17 +112,26 @@ def _read_required_str(payload: Mapping[str, Any], key: str, *, prefix: str) -> 
     value = payload.get(key)
     if value is None:
         raise ConfigError(f"{prefix}.{key} 缺失")
-    text = str(value).strip()
+    if not isinstance(value, str):
+        raise ConfigError(f"{prefix}.{key} 必须是字符串")
+    text = value.strip()
     if not text:
         raise ConfigError(f"{prefix}.{key} 不能为空")
     return text
 
 
-def _read_optional_str(payload: Mapping[str, Any], key: str) -> str | None:
+def _read_optional_str(
+    payload: Mapping[str, Any],
+    key: str,
+    *,
+    prefix: str,
+) -> str | None:
     value = payload.get(key)
     if value is None:
         return None
-    text = str(value).strip()
+    if not isinstance(value, str):
+        raise ConfigError(f"{prefix}.{key} 必须是字符串")
+    text = value.strip()
     return text or None
 
 
@@ -140,7 +149,9 @@ def _read_optional_str_list(
 
     normalized_values: list[str] = []
     for index, item in enumerate(value):
-        text = str(item).strip()
+        if not isinstance(item, str):
+            raise ConfigError(f"{prefix}.{key}[{index}] 必须是字符串")
+        text = item.strip()
         if not text:
             raise ConfigError(f"{prefix}.{key}[{index}] 不能为空")
         normalized_values.append(text)
