@@ -133,11 +133,12 @@ def poll_feed(
 
     # 来源顺序会优先尝试上次成功的实例；一旦某个来源成功，本轮就提前结束。
     for source_url in _resolve_source_urls(feed, feed_state):
-        source_state = source_states.get(source_url)
-        if source_state is None:
-            source_state = _clone_source_state(
-                feed_state.get_source_state(source_url, primary_url=feed.url)
-            )
+        source_state = _resolve_feed_source_state(
+            feed_state,
+            source_states,
+            source_url,
+            primary_url=feed.url,
+        )
 
         source_result = _poll_source(
             client,
@@ -154,64 +155,24 @@ def poll_feed(
         attempts.extend(source_result.attempts)
 
         if source_result.status in _SUCCESS_STATUSES:
-            next_state = _build_success_state(
+            return _build_feed_success_result(
                 feed,
                 feed_state,
                 source_states,
-                checked_at=checked_at,
-                source_url=source_url,
-                http_status=source_result.http_status,
-                seen_ids=source_result.next_seen_ids or feed_state.seen_ids.copy(),
-            )
-            return FeedPollResult(
-                feed=feed,
-                feed_title=source_result.feed_title or feed.title or feed.id,
-                checked_at=checked_at,
-                status=source_result.status,
-                http_status=source_result.http_status,
-                source_url=source_url,
-                entries=source_result.entries,
-                new_entries=source_result.new_entries,
-                next_state=next_state,
+                source_result,
                 attempts=attempts,
-                used_fallback=source_url != feed.url,
+                checked_at=checked_at,
+                source_url=source_url,
                 recovered_from_error=recovered_from_error,
-                effective_max_entries_per_feed=(
-                    effective_entry_limit
-                    if source_result.status in {"ok", "parse-warning"}
-                    else None
-                ),
+                effective_entry_limit=effective_entry_limit,
             )
 
-    last_attempt = attempts[-1] if attempts else None
-    last_attempt_http_status = (
-        last_attempt.http_status if last_attempt is not None else None
-    )
-    last_attempt_error = (
-        last_attempt.error
-        if last_attempt is not None and last_attempt.error
-        else "未知错误"
-    )
-    next_state = _build_error_state(
+    return _build_feed_error_result(
         feed,
         feed_state,
         source_states,
-        checked_at=checked_at,
-        http_status=last_attempt_http_status,
-        error=last_attempt_error,
-    )
-    return FeedPollResult(
-        feed=feed,
-        feed_title=feed.title or feed.id,
-        checked_at=checked_at,
-        status="error",
-        http_status=last_attempt_http_status,
-        source_url=last_attempt.source_url if last_attempt is not None else None,
-        entries=[],
-        new_entries=[],
-        next_state=next_state,
         attempts=attempts,
-        error=last_attempt_error,
+        checked_at=checked_at,
     )
 
 
@@ -378,6 +339,21 @@ def _build_host_limiters(
     return host_limiters
 
 
+def _resolve_feed_source_state(
+    feed_state: FeedState,
+    source_states: dict[str, FeedSourceState],
+    source_url: str,
+    *,
+    primary_url: str,
+) -> FeedSourceState:
+    source_state = source_states.get(source_url)
+    if source_state is not None:
+        return source_state
+    return _clone_source_state(
+        feed_state.get_source_state(source_url, primary_url=primary_url)
+    )
+
+
 def _resolve_source_urls(
     feed: FeedConfig,
     feed_state: FeedState,
@@ -457,6 +433,48 @@ def _build_source_error_result(
     )
 
 
+def _build_feed_success_result(
+    feed: FeedConfig,
+    previous_state: FeedState,
+    source_states: dict[str, FeedSourceState],
+    source_result: _SourcePollResult,
+    *,
+    attempts: list[FeedAttemptResult],
+    checked_at: str,
+    source_url: str,
+    recovered_from_error: bool,
+    effective_entry_limit: int,
+) -> FeedPollResult:
+    next_state = _build_success_state(
+        feed,
+        previous_state,
+        source_states,
+        checked_at=checked_at,
+        source_url=source_url,
+        http_status=source_result.http_status,
+        seen_ids=source_result.next_seen_ids or previous_state.seen_ids.copy(),
+    )
+    return FeedPollResult(
+        feed=feed,
+        feed_title=source_result.feed_title or feed.title or feed.id,
+        checked_at=checked_at,
+        status=source_result.status,
+        http_status=source_result.http_status,
+        source_url=source_url,
+        entries=source_result.entries,
+        new_entries=source_result.new_entries,
+        next_state=next_state,
+        attempts=attempts,
+        used_fallback=source_url != feed.url,
+        recovered_from_error=recovered_from_error,
+        effective_max_entries_per_feed=(
+            effective_entry_limit
+            if source_result.status in {"ok", "parse-warning"}
+            else None
+        ),
+    )
+
+
 def _build_unexpected_feed_error_result(
     feed: FeedConfig,
     feed_state: FeedState,
@@ -485,6 +503,38 @@ def _build_unexpected_feed_error_result(
         next_state=next_state,
         attempts=[],
         error=error_text,
+    )
+
+
+def _build_feed_error_result(
+    feed: FeedConfig,
+    previous_state: FeedState,
+    source_states: dict[str, FeedSourceState],
+    *,
+    attempts: list[FeedAttemptResult],
+    checked_at: str,
+) -> FeedPollResult:
+    source_url, http_status, error = _resolve_last_attempt_details(attempts)
+    next_state = _build_error_state(
+        feed,
+        previous_state,
+        source_states,
+        checked_at=checked_at,
+        http_status=http_status,
+        error=error,
+    )
+    return FeedPollResult(
+        feed=feed,
+        feed_title=feed.title or feed.id,
+        checked_at=checked_at,
+        status="error",
+        http_status=http_status,
+        source_url=source_url,
+        entries=[],
+        new_entries=[],
+        next_state=next_state,
+        attempts=attempts,
+        error=error,
     )
 
 
@@ -562,6 +612,19 @@ def _clone_source_state(source_state: FeedSourceState) -> FeedSourceState:
         last_success_at=source_state.last_success_at,
         last_http_status=source_state.last_http_status,
         last_error=source_state.last_error,
+    )
+
+
+def _resolve_last_attempt_details(
+    attempts: list[FeedAttemptResult],
+) -> tuple[str | None, int | None, str]:
+    last_attempt = attempts[-1] if attempts else None
+    if last_attempt is None:
+        return None, None, "未知错误"
+    return (
+        last_attempt.source_url,
+        last_attempt.http_status,
+        last_attempt.error or "未知错误",
     )
 
 
