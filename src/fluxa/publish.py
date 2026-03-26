@@ -62,6 +62,11 @@ def publish_summary(
         # dry-run 仍然完整渲染 issue，方便本地核对模板和数据，但不触发 gh 写操作。
         return _build_publish_result(repo_name, draft, issue_number=None)
 
+    if repo_name is None:
+        raise PublishError(
+            "缺少 GitHub 仓库信息，请传入 --repo 或设置 GITHUB_REPOSITORY"
+        )
+
     with tempfile.TemporaryDirectory(prefix="fluxa-") as temp_dir:
         temp_path = Path(temp_dir)
         issue_path = _write_issue_body(temp_path, draft.issue_body)
