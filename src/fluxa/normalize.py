@@ -23,9 +23,12 @@ def normalize_entries(
     feed: FeedConfig,
     feed_title: str,
     raw_entries: Sequence[Mapping[str, Any]],
+    *,
+    entry_limit: int | None = None,
 ) -> list[NormalizedEntry]:
     entries: list[NormalizedEntry] = []
-    for raw_entry in raw_entries[: feed.max_entries_per_feed]:
+    limit = entry_limit or feed.max_entries_per_feed
+    for raw_entry in raw_entries[:limit]:
         normalized = normalize_entry(feed, feed_title, raw_entry)
         if normalized is not None:
             entries.append(normalized)
