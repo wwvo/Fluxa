@@ -253,8 +253,50 @@ def _write_step_summary(
     if not step_summary_path:
         return
 
-    # Actions summary 主要服务于排障：既给整体数字，也把恢复成功和失败明细单独列出来。
-    lines = [
+    lines = _build_step_summary_header_lines(
+        summary,
+        config_path=config_path,
+        state_path=state_path,
+        dry_run=dry_run,
+        state_saved=state_saved,
+        total_count=total_count,
+        enabled_count=enabled_count,
+    )
+    publish_line = _build_publish_result_line(
+        summary,
+        publish_result=publish_result,
+        dry_run=dry_run,
+    )
+    if publish_line is not None:
+        lines.append(publish_line)
+    if operation_error is not None:
+        lines.extend(["", f"- 操作错误：`{operation_error}`"])
+
+    for section in _build_recovery_sections(summary):
+        lines.extend(["", f"## {section.markdown_title}"])
+        lines.extend(f"- {_format_recovery_line(result)}" for result in section.results)
+
+    if summary.failed_results:
+        lines.extend(_build_failure_section_lines(summary.failed_results))
+
+    try:
+        Path(step_summary_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"警告: 写入 GITHUB_STEP_SUMMARY 失败: {exc}")
+
+
+def _build_step_summary_header_lines(
+    summary: RunSummary,
+    *,
+    config_path: str,
+    state_path: str,
+    dry_run: bool,
+    state_saved: bool,
+    total_count: int,
+    enabled_count: int,
+) -> list[str]:
+    # Actions summary 主要服务于排障：先给整体数字，再追加恢复成功与失败明细。
+    return [
         "# Fluxa Run Summary",
         "",
         f"- 配置文件：`{config_path}`",
@@ -270,39 +312,36 @@ def _write_step_summary(
         f"- 状态已保存：{'是' if state_saved else '否'}",
     ]
 
+
+def _build_publish_result_line(
+    summary: RunSummary,
+    *,
+    publish_result: PublishResult | None,
+    dry_run: bool,
+) -> str | None:
     if publish_result is not None:
         if dry_run:
             if publish_result.repo:
-                lines.append(
+                return (
                     f"- 发布结果：dry-run，已跳过向 `{publish_result.repo}` 写入 issue"
                 )
-            else:
-                lines.append("- 发布结果：dry-run，已跳过 GitHub issue 写入")
-        else:
-            lines.append(
-                f"- 发布结果：issue #{publish_result.issue_number} @ `{publish_result.repo}`"
-            )
-    elif summary.new_count == 0 or summary.bootstrap_mode:
-        lines.append("- 发布结果：本轮无需发布 issue")
+            return "- 发布结果：dry-run，已跳过 GitHub issue 写入"
+        return f"- 发布结果：issue #{publish_result.issue_number} @ `{publish_result.repo}`"
 
-    if operation_error is not None:
-        lines.extend(["", f"- 操作错误：`{operation_error}`"])
+    if summary.new_count == 0 or summary.bootstrap_mode:
+        return "- 发布结果：本轮无需发布 issue"
+    return None
 
-    for section in _build_recovery_sections(summary):
-        lines.extend(["", f"## {section.markdown_title}"])
-        lines.extend(f"- {_format_recovery_line(result)}" for result in section.results)
 
-    if summary.failed_results:
-        lines.extend(["", "## 失败 Feed"])
-        for result in summary.failed_results:
-            lines.append(f"- `{result.feed.id}` / {result.feed_title}")
-            lines.append(f"  最终错误：{result.error or '未知错误'}")
-            lines.append(f"  尝试：{_format_attempts(result)}")
-
-    try:
-        Path(step_summary_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
-    except OSError as exc:
-        print(f"警告: 写入 GITHUB_STEP_SUMMARY 失败: {exc}")
+def _build_failure_section_lines(
+    failed_results: list[FeedPollResult],
+) -> list[str]:
+    lines = ["", "## 失败 Feed"]
+    for result in failed_results:
+        lines.append(f"- `{result.feed.id}` / {result.feed_title}")
+        lines.append(f"  最终错误：{result.error or '未知错误'}")
+        lines.append(f"  尝试：{_format_attempts(result)}")
+    return lines
 
 
 def _build_recovery_sections(summary: RunSummary) -> list[_RecoverySection]:
