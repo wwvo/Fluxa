@@ -30,10 +30,21 @@ feeds:
 
 首次运行会自动进入 bootstrap 模式：抓取当前 feed，但只写入 `seen_ids`，不回补历史文章。
 
+## 工作流
+
+仓库内置 `.github/workflows/rss-digest.yml`：
+
+- `main` 分支保存代码、模板和 `feeds/feeds.yml`
+- `rss-state` 分支只保存 `state/state.json`
+- GitHub Actions 每 2 小时执行一次
+- 检测到新增文章后，会在当天的 `Fluxa Digest | YYYY-MM-DD` issue 下追加 comment
+- 首次运行只 bootstrap，不会回补历史文章
+
 ## 开发
 
 ```bash
 uv sync
 uv run fluxa --help
 uv run fluxa --bootstrap-only
+uv run fluxa --repo owner/repo --run-id local-test --dry-run
 ```
