@@ -26,6 +26,8 @@ feeds:
     url: https://github.blog/feed/
 ```
 
+对于 RSSHub feed，`fallback_urls` 可以省略。Fluxa 会在 Python 侧根据路由自动补出一组公共实例回退顺序；只有少数需要特殊覆盖的 feed 才需要手写 `fallback_urls`。
+
 状态文件默认写入 `state/state.json`，后续会由独立的 `rss-state` 分支保存。
 
 首次运行会自动进入 bootstrap 模式：抓取当前 feed，但只写入 `seen_ids`，不回补历史文章。

@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from fluxa.models import AppConfig, ConfigError, FeedConfig, FeedDefaults
+from fluxa.rsshub import resolve_fallback_urls
 
 
 def load_config(path: Path) -> AppConfig:
@@ -50,14 +51,19 @@ def load_config(path: Path) -> AppConfig:
         if feed_id in seen_ids:
             raise ConfigError(f"feed id 重复: {feed_id}")
         seen_ids.add(feed_id)
+        feed_url = _read_required_str(item, "url", prefix=f"feeds[{index}]")
+        explicit_fallback_urls = _read_optional_str_list(
+            item,
+            "fallback_urls",
+            prefix=f"feeds[{index}]",
+        )
 
         feed = FeedConfig(
             id=feed_id,
-            url=_read_required_str(item, "url", prefix=f"feeds[{index}]"),
-            fallback_urls=_read_optional_str_list(
-                item,
-                "fallback_urls",
-                prefix=f"feeds[{index}]",
+            url=feed_url,
+            fallback_urls=resolve_fallback_urls(
+                feed_url,
+                explicit_fallback_urls,
             ),
             title=_read_optional_str(item, "title"),
             enabled=_read_bool(item, "enabled", defaults.enabled),
