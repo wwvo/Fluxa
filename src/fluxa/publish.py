@@ -23,7 +23,7 @@ from fluxa.render import render_run_issue
 class PublishResult:
     """一次发布动作的结果。"""
 
-    repo: str
+    repo: str | None
     issue_number: int | None
     issue_title: str
     run_id: str
@@ -39,7 +39,7 @@ def publish_summary(
     run_id: str | None,
     dry_run: bool,
 ) -> PublishResult:
-    repo_name = _resolve_repo(repo)
+    repo_name = _resolve_repo(repo, required=not dry_run)
     resolved_run_id = _resolve_run_id(run_id)
     timezone = _load_timezone(timezone_name)
     run_time = datetime.now(timezone).replace(microsecond=0)
@@ -163,13 +163,15 @@ def _find_run_issue_number(repo: str, run_marker: str) -> int | None:
         page += 1
 
 
-def _resolve_repo(repo: str | None) -> str:
+def _resolve_repo(repo: str | None, *, required: bool) -> str | None:
     resolved = repo or os.getenv("GH_REPO") or os.getenv("GITHUB_REPOSITORY")
-    if not resolved:
+    if resolved:
+        return resolved
+    if required:
         raise PublishError(
             "缺少 GitHub 仓库信息，请传入 --repo 或设置 GITHUB_REPOSITORY"
         )
-    return resolved
+    return None
 
 
 def _resolve_run_id(run_id: str | None) -> str:

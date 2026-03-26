@@ -5,7 +5,20 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from fluxa.publish import upsert_run_issue
+from fluxa.models import AppConfig, FeedDefaults, RunSummary
+from fluxa.publish import publish_summary, upsert_run_issue
+
+
+def _build_summary() -> RunSummary:
+    return RunSummary(
+        config=AppConfig(
+            path=Path("feeds/feeds.yml"),
+            defaults=FeedDefaults(),
+            feeds=(),
+        ),
+        bootstrap_mode=False,
+        results=[],
+    )
 
 
 class PublishIssueLookupTests(unittest.TestCase):
@@ -66,6 +79,23 @@ class PublishIssueLookupTests(unittest.TestCase):
         self.assertEqual(issue_number, 333)
         self.assertEqual(mock_run_gh_json.call_count, 2)
         mock_run_gh.assert_not_called()
+
+    def test_publish_summary_allows_dry_run_without_repo(self) -> None:
+        summary = _build_summary()
+
+        with patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"):
+            with patch.dict("os.environ", {}, clear=True):
+                result = publish_summary(
+                    summary,
+                    Path("."),
+                    repo=None,
+                    timezone_name="Asia/Shanghai",
+                    run_id="dry-run-123",
+                    dry_run=True,
+                )
+
+        self.assertIsNone(result.repo)
+        self.assertIsNone(result.issue_number)
 
 
 if __name__ == "__main__":

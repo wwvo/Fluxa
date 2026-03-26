@@ -271,9 +271,17 @@ def _write_step_summary(
     ]
 
     if publish_result is not None:
-        lines.append(
-            f"- 发布结果：issue #{publish_result.issue_number} @ `{publish_result.repo}`"
-        )
+        if dry_run:
+            if publish_result.repo:
+                lines.append(
+                    f"- 发布结果：dry-run，已跳过向 `{publish_result.repo}` 写入 issue"
+                )
+            else:
+                lines.append("- 发布结果：dry-run，已跳过 GitHub issue 写入")
+        else:
+            lines.append(
+                f"- 发布结果：issue #{publish_result.issue_number} @ `{publish_result.repo}`"
+            )
     elif summary.new_count == 0 or summary.bootstrap_mode:
         lines.append("- 发布结果：本轮无需发布 issue")
 
