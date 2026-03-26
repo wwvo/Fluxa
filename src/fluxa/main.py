@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import os
 from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 
 from fluxa.config import load_config
@@ -16,6 +17,13 @@ from fluxa.models import FeedPollResult, FluxaError, RunSummary
 from fluxa.publish import PublishResult, publish_summary
 from fluxa.runner import run_cycle
 from fluxa.state import load_state, save_state
+
+
+@dataclass(slots=True, frozen=True)
+class _RecoverySection:
+    console_title: str
+    markdown_title: str
+    results: list[FeedPollResult]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -176,17 +184,9 @@ def _print_overview(
 
 
 def _print_result_sections(summary: RunSummary) -> None:
-    if summary.fallback_recovered_results:
-        print("本轮由备用实例兜底的 feeds：")
-        for result in summary.fallback_recovered_results:
-            print(f"- {_format_recovery_line(result)}")
-
-    direct_recoveries = [
-        result for result in summary.recovered_results if not result.used_fallback
-    ]
-    if direct_recoveries:
-        print("本轮恢复成功并扩大抓取窗口的 feeds：")
-        for result in direct_recoveries:
+    for section in _build_recovery_sections(summary):
+        print(section.console_title)
+        for result in section.results:
             print(f"- {_format_recovery_line(result)}")
 
     if summary.failed_results:
@@ -288,21 +288,9 @@ def _write_step_summary(
     if operation_error is not None:
         lines.extend(["", f"- 操作错误：`{operation_error}`"])
 
-    if summary.fallback_recovered_results:
-        lines.extend(["", "## 备用实例兜底成功"])
-        lines.extend(
-            f"- {_format_recovery_line(result)}"
-            for result in summary.fallback_recovered_results
-        )
-
-    direct_recoveries = [
-        result for result in summary.recovered_results if not result.used_fallback
-    ]
-    if direct_recoveries:
-        lines.extend(["", "## 失败后恢复成功"])
-        lines.extend(
-            f"- {_format_recovery_line(result)}" for result in direct_recoveries
-        )
+    for section in _build_recovery_sections(summary):
+        lines.extend(["", f"## {section.markdown_title}"])
+        lines.extend(f"- {_format_recovery_line(result)}" for result in section.results)
 
     if summary.failed_results:
         lines.extend(["", "## 失败 Feed"])
@@ -315,6 +303,33 @@ def _write_step_summary(
         Path(step_summary_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
     except OSError as exc:
         print(f"警告: 写入 GITHUB_STEP_SUMMARY 失败: {exc}")
+
+
+def _build_recovery_sections(summary: RunSummary) -> list[_RecoverySection]:
+    sections: list[_RecoverySection] = []
+
+    if summary.fallback_recovered_results:
+        sections.append(
+            _RecoverySection(
+                console_title="本轮由备用实例兜底的 feeds：",
+                markdown_title="备用实例兜底成功",
+                results=summary.fallback_recovered_results,
+            )
+        )
+
+    direct_recoveries = [
+        result for result in summary.recovered_results if not result.used_fallback
+    ]
+    if direct_recoveries:
+        sections.append(
+            _RecoverySection(
+                console_title="本轮恢复成功并扩大抓取窗口的 feeds：",
+                markdown_title="失败后恢复成功",
+                results=direct_recoveries,
+            )
+        )
+
+    return sections
 
 
 if __name__ == "__main__":

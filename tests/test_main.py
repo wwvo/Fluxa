@@ -5,8 +5,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fluxa.main import _write_step_summary
-from fluxa.models import AppConfig, FeedDefaults, RunSummary
+from fluxa.main import _build_recovery_sections, _write_step_summary
+from fluxa.models import (
+    AppConfig,
+    FeedConfig,
+    FeedDefaults,
+    FeedPollResult,
+    FeedState,
+    RunSummary,
+)
 from fluxa.publish import PublishResult
 
 
@@ -23,6 +30,74 @@ def _build_summary() -> RunSummary:
 
 
 class StepSummaryTests(unittest.TestCase):
+    def test_build_recovery_sections_keeps_console_and_markdown_titles_in_sync(
+        self,
+    ) -> None:
+        summary = RunSummary(
+            config=AppConfig(
+                path=Path("feeds/feeds.yml"),
+                defaults=FeedDefaults(),
+                feeds=(),
+            ),
+            bootstrap_mode=False,
+            results=[
+                FeedPollResult(
+                    feed=FeedConfig(
+                        id="fallback",
+                        url="https://example.com/feed.xml",
+                        fallback_urls=(),
+                        title="Fallback Feed",
+                        enabled=True,
+                        timeout_seconds=20,
+                        max_entries_per_feed=20,
+                        max_seen_ids=300,
+                    ),
+                    feed_title="Fallback Feed",
+                    checked_at="2026-03-27T00:00:00+00:00",
+                    status="ok",
+                    http_status=200,
+                    source_url="https://mirror.example.com/feed.xml",
+                    entries=[],
+                    new_entries=[],
+                    next_state=FeedState(),
+                    used_fallback=True,
+                    recovered_from_error=False,
+                ),
+                FeedPollResult(
+                    feed=FeedConfig(
+                        id="recovered",
+                        url="https://example.com/recovered.xml",
+                        fallback_urls=(),
+                        title="Recovered Feed",
+                        enabled=True,
+                        timeout_seconds=20,
+                        max_entries_per_feed=20,
+                        max_seen_ids=300,
+                    ),
+                    feed_title="Recovered Feed",
+                    checked_at="2026-03-27T00:00:00+00:00",
+                    status="ok",
+                    http_status=200,
+                    source_url="https://example.com/recovered.xml",
+                    entries=[],
+                    new_entries=[],
+                    next_state=FeedState(),
+                    used_fallback=False,
+                    recovered_from_error=True,
+                ),
+            ],
+        )
+
+        sections = _build_recovery_sections(summary)
+
+        self.assertEqual(
+            [(section.console_title, section.markdown_title) for section in sections],
+            [
+                ("本轮由备用实例兜底的 feeds：", "备用实例兜底成功"),
+                ("本轮恢复成功并扩大抓取窗口的 feeds：", "失败后恢复成功"),
+            ],
+        )
+
     def test_dry_run_summary_does_not_render_issue_none(self) -> None:
         summary = _build_summary()
         publish_result = PublishResult(
