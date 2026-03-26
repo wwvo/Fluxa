@@ -98,6 +98,22 @@ class PublishIssueLookupTests(unittest.TestCase):
         self.assertIsNone(result.repo)
         self.assertIsNone(result.issue_number)
 
+    def test_publish_summary_raises_publish_error_when_template_missing(self) -> None:
+        summary = _build_summary()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            templates_dir = Path(temp_dir)
+            with patch.dict("os.environ", {}, clear=True):
+                with self.assertRaises(PublishError):
+                    publish_summary(
+                        summary,
+                        templates_dir,
+                        repo=None,
+                        timezone_name="Asia/Shanghai",
+                        run_id="dry-run-456",
+                        dry_run=True,
+                    )
+
     def test_run_gh_raises_publish_error_on_timeout(self) -> None:
         with patch(
             "fluxa.publish.subprocess.run",

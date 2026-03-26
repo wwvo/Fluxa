@@ -11,9 +11,11 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, TemplateError, select_autoescape
 
-from fluxa.models import RunSummary
+from fluxa.models import PublishError, RunSummary
+
+_RUN_ISSUE_TEMPLATE = "run_issue.md.j2"
 
 
 def render_run_issue(
@@ -26,30 +28,36 @@ def render_run_issue(
     run_id: str,
     run_time: datetime,
 ) -> str:
-    template = _build_environment(templates_dir).get_template("run_issue.md.j2")
-    return template.render(
-        run_marker=f"fluxa-run:{run_id}",
-        issue_title=issue_title,
-        run_id=run_id,
-        run_time=run_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
-        timezone_name=timezone_name,
-        total_feeds=len(summary.config.feeds),
-        enabled_feeds=len(summary.config.enabled_feeds),
-        checked_count=summary.checked_count,
-        new_count=summary.new_count,
-        error_count=summary.error_count,
-        not_modified_count=summary.not_modified_count,
-        grouped_entries=_group_entries(summary, timezone),
-        errors=[
-            {
-                "feed_id": result.feed.id,
-                "feed_title": result.feed_title,
-                "error": result.error or "未知错误",
-            }
-            for result in summary.results
-            if result.status == "error"
-        ],
-    )
+    try:
+        template = _build_environment(templates_dir).get_template(_RUN_ISSUE_TEMPLATE)
+        return template.render(
+            run_marker=f"fluxa-run:{run_id}",
+            issue_title=issue_title,
+            run_id=run_id,
+            run_time=run_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+            timezone_name=timezone_name,
+            total_feeds=len(summary.config.feeds),
+            enabled_feeds=len(summary.config.enabled_feeds),
+            checked_count=summary.checked_count,
+            new_count=summary.new_count,
+            error_count=summary.error_count,
+            not_modified_count=summary.not_modified_count,
+            grouped_entries=_group_entries(summary, timezone),
+            errors=[
+                {
+                    "feed_id": result.feed.id,
+                    "feed_title": result.feed_title,
+                    "error": result.error or "未知错误",
+                }
+                for result in summary.results
+                if result.status == "error"
+            ],
+        )
+    except (OSError, TemplateError) as exc:
+        detail = str(exc).strip() or exc.__class__.__name__
+        raise PublishError(
+            f"issue 模板渲染失败（{_RUN_ISSUE_TEMPLATE}）: {detail}"
+        ) from exc
 
 
 def _build_environment(templates_dir: Path) -> Environment:
