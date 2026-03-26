@@ -6,16 +6,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import BoundedSemaphore
 from time import sleep
-from typing import Any, cast
+from typing import Protocol, cast
 from urllib.parse import urlsplit
 
-import feedparser
+import feedparser  # pyright: ignore[reportMissingTypeStubs]
 import httpx
 
 from fluxa.diff import compute_entry_delta
@@ -40,6 +40,14 @@ _RETRY_BACKOFF_SECONDS = 0.5
 _RECOVERY_WINDOW_MULTIPLIER = 5
 _RECOVERY_MAX_ENTRIES_CAP = 100
 _SUCCESS_STATUSES = {"ok", "parse-warning", "not-modified"}
+
+
+class _ParsedFeed(Protocol):
+    """约束 feedparser 返回对象中本模块实际会访问的字段。"""
+
+    feed: Mapping[str, object]
+    entries: Sequence[Mapping[str, object]]
+    bozo: object
 
 
 @dataclass(slots=True)
@@ -229,19 +237,17 @@ def _poll_source(
                     feed_title=feed.title or feed.id,
                 )
 
-            response.raise_for_status()
+            _ = response.raise_for_status()
             try:
-                parsed = feedparser.parse(response.content)
-                parsed_feed = cast(Mapping[str, Any], parsed.feed)
-                parsed_entries = cast(Sequence[Mapping[str, Any]], parsed.entries)
+                parsed = _parse_feed_response(response.content)
                 # feedparser 解析容错较强；只要能提取到条目，就仍按成功处理。
                 feed_title = (
-                    feed.title or cast(str | None, parsed_feed.get("title")) or feed.id
+                    feed.title or _coerce_text(parsed.feed.get("title")) or feed.id
                 )
                 entries = normalize_entries(
                     feed,
                     feed_title,
-                    parsed_entries,
+                    parsed.entries,
                     entry_limit=entry_limit,
                 )
                 new_entries, merged_seen_ids = compute_entry_delta(
@@ -270,7 +276,7 @@ def _poll_source(
                     attempts=attempts,
                 )
             status = "ok"
-            if parsed.bozo and not entries:
+            if _is_truthy_flag(parsed.bozo) and not entries:
                 status = "parse-warning"
             attempts.append(
                 FeedAttemptResult(
@@ -285,8 +291,8 @@ def _poll_source(
                 status=status,
                 http_status=response.status_code,
                 next_source_state=FeedSourceState(
-                    etag=response.headers.get("ETag"),
-                    last_modified=response.headers.get("Last-Modified"),
+                    etag=_get_response_header(response, "ETag"),
+                    last_modified=_get_response_header(response, "Last-Modified"),
                     last_checked_at=checked_at,
                     last_success_at=checked_at,
                     last_http_status=response.status_code,
@@ -299,7 +305,7 @@ def _poll_source(
                 next_seen_ids=merged_seen_ids,
             )
         except httpx.HTTPError as exc:
-            response = getattr(exc, "response", None)
+            response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
             http_status = response.status_code if response is not None else None
             error_text = str(exc)
             attempts.append(
@@ -341,7 +347,7 @@ def _build_host_limiters(
     for feed in feeds:
         for source_url in feed.source_urls:
             host = _extract_host(source_url)
-            host_limiters.setdefault(host, BoundedSemaphore(_MAX_PER_HOST))
+            _ = host_limiters.setdefault(host, BoundedSemaphore(_MAX_PER_HOST))
     return host_limiters
 
 
@@ -402,7 +408,7 @@ def _get_with_host_limit(
     host_limiters: dict[str, BoundedSemaphore],
 ) -> httpx.Response:
     limiter = host_limiters[_extract_host(source_url)]
-    limiter.acquire()
+    _ = limiter.acquire()
     try:
         return client.get(
             source_url,
@@ -662,6 +668,33 @@ def _is_retryable_error(exc: httpx.HTTPError) -> bool:
 def _extract_host(source_url: str) -> str:
     parts = urlsplit(source_url)
     return parts.netloc.lower() or source_url
+
+
+def _parse_feed_response(content: bytes) -> _ParsedFeed:
+    parse_feed = cast(Callable[[bytes], object], feedparser.parse)
+    raw_parsed = parse_feed(content)
+    return cast(_ParsedFeed, raw_parsed)
+
+
+def _coerce_text(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _is_truthy_flag(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    return bool(value)
+
+
+def _get_response_header(response: httpx.Response, header_name: str) -> str | None:
+    if header_name not in response.headers:
+        return None
+    return response.headers[header_name]
 
 
 def _format_parse_error(exc: Exception) -> str:
