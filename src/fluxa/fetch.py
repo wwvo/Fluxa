@@ -6,11 +6,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import BoundedSemaphore
 from time import sleep
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 import feedparser
@@ -230,12 +232,16 @@ def _poll_source(
             response.raise_for_status()
             try:
                 parsed = feedparser.parse(response.content)
+                parsed_feed = cast(Mapping[str, Any], parsed.feed)
+                parsed_entries = cast(Sequence[Mapping[str, Any]], parsed.entries)
                 # feedparser 解析容错较强；只要能提取到条目，就仍按成功处理。
-                feed_title = feed.title or parsed.feed.get("title") or feed.id
+                feed_title = (
+                    feed.title or cast(str | None, parsed_feed.get("title")) or feed.id
+                )
                 entries = normalize_entries(
                     feed,
                     feed_title,
-                    parsed.entries,
+                    parsed_entries,
                     entry_limit=entry_limit,
                 )
                 new_entries, merged_seen_ids = compute_entry_delta(
