@@ -12,40 +12,25 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from fluxa.models import RunSummary
 
 
-def render_daily_issue(
-    templates_dir: Path,
-    *,
-    issue_title: str,
-    issue_date: str,
-    timezone_name: str,
-    total_feeds: int,
-    enabled_feeds: int,
-) -> str:
-    template = _build_environment(templates_dir).get_template("daily_issue.md.j2")
-    return template.render(
-        issue_marker=f"fluxa-issue:{issue_date}",
-        issue_title=issue_title,
-        issue_date=issue_date,
-        timezone_name=timezone_name,
-        total_feeds=total_feeds,
-        enabled_feeds=enabled_feeds,
-    )
-
-
-def render_run_comment(
+def render_run_issue(
     templates_dir: Path,
     summary: RunSummary,
     *,
+    issue_title: str,
     timezone_name: str,
     timezone: ZoneInfo,
     run_id: str,
     run_time: datetime,
 ) -> str:
-    template = _build_environment(templates_dir).get_template("run_comment.md.j2")
+    template = _build_environment(templates_dir).get_template("run_issue.md.j2")
     return template.render(
         run_marker=f"fluxa-run:{run_id}",
+        issue_title=issue_title,
         run_id=run_id,
         run_time=run_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+        timezone_name=timezone_name,
+        total_feeds=len(summary.config.feeds),
+        enabled_feeds=len(summary.config.enabled_feeds),
         checked_count=summary.checked_count,
         new_count=summary.new_count,
         error_count=summary.error_count,

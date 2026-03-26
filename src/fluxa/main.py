@@ -51,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--run-id",
         default=None,
-        help="Unique run identifier used for comment idempotency. Defaults to GITHUB_RUN_ID.",
+        help="Unique run identifier used for issue idempotency. Defaults to GITHUB_RUN_ID.",
     )
     parser.add_argument(
         "--dry-run",
@@ -109,13 +109,12 @@ def main() -> int:
     if summary.bootstrap_mode:
         print("当前为 bootstrap 模式：本轮只建立 seen_ids，不发布历史文章。")
     elif summary.new_count == 0:
-        print("本轮没有新文章，不会发布 issue comment。")
+        print("本轮没有新文章，不会发布 issue。")
     elif args.dry_run:
         print("当前为 dry-run 模式：已跳过 gh 发布，也未保存 state。")
     elif publish_result is not None:
         print(
-            f"已发布到 {publish_result.repo} 的 issue #{publish_result.issue_number}，"
-            f"comment id 为 {publish_result.comment_id}。"
+            f"已发布到 {publish_result.repo} 的 issue #{publish_result.issue_number}。"
         )
 
     if not args.dry_run:

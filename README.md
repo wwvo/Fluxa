@@ -37,7 +37,8 @@ feeds:
 - `main` 分支保存代码、模板和 `feeds/feeds.yml`
 - `rss-state` 分支只保存 `state/state.json`
 - GitHub Actions 每 2 小时执行一次
-- 检测到新增文章后，会在当天的 `Fluxa Digest | YYYY-MM-DD` issue 下追加 comment
+- 检测到新增文章后，会为该轮执行直接创建一个独立 issue
+- 同一次 workflow 重跑会按 `run_id` 更新同一个 issue，避免重复发
 - 首次运行只 bootstrap，不会回补历史文章
 
 ## 开发
