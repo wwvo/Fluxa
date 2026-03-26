@@ -157,26 +157,34 @@ def poll_feed(
             )
 
     last_attempt = attempts[-1] if attempts else None
+    last_attempt_http_status = (
+        last_attempt.http_status if last_attempt is not None else None
+    )
+    last_attempt_error = (
+        last_attempt.error
+        if last_attempt is not None and last_attempt.error
+        else "未知错误"
+    )
     next_state = _build_error_state(
         feed,
         feed_state,
         source_states,
         checked_at=checked_at,
-        http_status=last_attempt.http_status if last_attempt is not None else None,
-        error=last_attempt.error if last_attempt is not None else "未知错误",
+        http_status=last_attempt_http_status,
+        error=last_attempt_error,
     )
     return FeedPollResult(
         feed=feed,
         feed_title=feed.title or feed.id,
         checked_at=checked_at,
         status="error",
-        http_status=last_attempt.http_status if last_attempt is not None else None,
+        http_status=last_attempt_http_status,
         source_url=last_attempt.source_url if last_attempt is not None else None,
         entries=[],
         new_entries=[],
         next_state=next_state,
         attempts=attempts,
-        error=last_attempt.error if last_attempt is not None else "未知错误",
+        error=last_attempt_error,
     )
 
 
