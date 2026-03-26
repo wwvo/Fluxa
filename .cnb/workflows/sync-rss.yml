@@ -40,13 +40,13 @@
             git init "$STATE_ROOT"
             git -C "$STATE_ROOT" checkout -b "$STATE_BRANCH"
             git -C "$STATE_ROOT" remote add origin "$ORIGIN_URL"
-            cat > "$STATE_ROOT/state/state.json" <<'JSON'
-            {
-              "schema_version": 1,
-              "bootstrap_completed": false,
-              "feeds": {}
-            }
-            JSON
+            printf '%s\n' \
+              '{' \
+              '  "schema_version": 1,' \
+              '  "bootstrap_completed": false,' \
+              '  "feeds": {}' \
+              '}' \
+              > "$STATE_ROOT/state/state.json"
           fi
 
           git config --global --add safe.directory "$(cd "$STATE_ROOT" && pwd)"
