@@ -9,6 +9,7 @@ from pathlib import Path
 from fluxa.config import load_config
 from fluxa.models import FluxaError
 from fluxa.publish import publish_summary
+from fluxa.report import emit_run_report
 from fluxa.runner import run_cycle
 from fluxa.state import load_state, save_state
 
@@ -96,29 +97,12 @@ def main() -> int:
     except FluxaError as exc:
         parser.exit(status=1, message=f"错误: {exc}\n")
 
-    enabled_count = len(config.enabled_feeds)
-    total_count = len(config.feeds)
-    print(
-        f"Fluxa 已加载 {total_count} 个 feeds（启用 {enabled_count} 个），"
-        f"状态文件目标路径为 {args.state_path}"
+    emit_run_report(
+        summary,
+        state_path=Path(args.state_path),
+        dry_run=args.dry_run,
+        publish_result=publish_result,
     )
-    print(
-        f"本轮检查 {summary.checked_count} 个启用 feeds，"
-        f"新增 {summary.new_count} 篇，错误 {summary.error_count} 个。"
-    )
-    if summary.bootstrap_mode:
-        print("当前为 bootstrap 模式：本轮只建立 seen_ids，不发布历史文章。")
-    elif summary.new_count == 0:
-        print("本轮没有新文章，不会发布 issue。")
-    elif args.dry_run:
-        print("当前为 dry-run 模式：已跳过 gh 发布，也未保存 state。")
-    elif publish_result is not None:
-        print(
-            f"已发布到 {publish_result.repo} 的 issue #{publish_result.issue_number}。"
-        )
-
-    if not args.dry_run:
-        print("状态文件已保存。")
     return 0
 
 
