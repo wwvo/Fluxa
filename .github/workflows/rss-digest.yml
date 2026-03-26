@@ -104,4 +104,8 @@ jobs:
       - name: Push state branch
         if: steps.commit-state.outputs.changed == 'true'
         working-directory: state-worktree
-        run: git push origin HEAD:${{ env.STATE_BRANCH }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin HEAD:${{ env.STATE_BRANCH }}
