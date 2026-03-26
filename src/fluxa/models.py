@@ -262,6 +262,7 @@ class FeedAttemptResult:
     status: str
     http_status: int | None
     error: str | None = None
+    note: str | None = None
 
 
 @dataclass(slots=True)

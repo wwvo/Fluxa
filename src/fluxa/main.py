@@ -231,6 +231,8 @@ def _format_attempts(result: FeedPollResult) -> str:
         detail = attempt.status
         if attempt.http_status is not None:
             detail = f"{detail}:{attempt.http_status}"
+        if attempt.note:
+            detail = f"{detail}:{attempt.note}"
         if attempt.error:
             detail = f"{detail}:{attempt.error}"
         segments.append(f"{attempt.source_url}#{attempt.attempt_number}({detail})")

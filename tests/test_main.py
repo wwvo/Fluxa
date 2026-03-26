@@ -5,9 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fluxa.main import _build_recovery_sections, _write_step_summary
+from fluxa.main import _build_recovery_sections, _format_attempts, _write_step_summary
 from fluxa.models import (
     AppConfig,
+    FeedAttemptResult,
     FeedConfig,
     FeedDefaults,
     FeedPollResult,
@@ -134,6 +135,52 @@ class StepSummaryTests(unittest.TestCase):
 
         self.assertIn("dry-run", rendered)
         self.assertNotIn("issue #None", rendered)
+
+    def test_format_attempts_includes_retry_mode_note(self) -> None:
+        result = FeedPollResult(
+            feed=FeedConfig(
+                id="demo",
+                url="https://example.com/feed.xml",
+                fallback_urls=(),
+                title="Demo Feed",
+                enabled=True,
+                timeout_seconds=20,
+                max_entries_per_feed=20,
+                max_seen_ids=300,
+            ),
+            feed_title="Demo Feed",
+            checked_at="2026-03-27T00:00:00+00:00",
+            status="error",
+            http_status=415,
+            source_url="https://example.com/feed.xml",
+            entries=[],
+            new_entries=[],
+            next_state=FeedState(),
+            attempts=[
+                FeedAttemptResult(
+                    source_url="https://example.com/feed.xml",
+                    attempt_number=1,
+                    status="error",
+                    http_status=415,
+                    error="status 415",
+                    note="条件请求，已切换宽松请求头重试",
+                ),
+                FeedAttemptResult(
+                    source_url="https://example.com/feed.xml",
+                    attempt_number=2,
+                    status="error",
+                    http_status=415,
+                    error="status 415",
+                    note="宽松请求头",
+                ),
+            ],
+            error="status 415",
+        )
+
+        attempt_text = _format_attempts(result)
+
+        self.assertIn("条件请求，已切换宽松请求头重试", attempt_text)
+        self.assertIn("宽松请求头", attempt_text)
 
 
 if __name__ == "__main__":

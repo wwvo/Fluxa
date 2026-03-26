@@ -32,6 +32,16 @@ def _build_response(url: str, content: bytes) -> httpx.Response:
     )
 
 
+def _build_http_status_error(url: str, status_code: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("GET", url)
+    response = httpx.Response(status_code, request=request)
+    return httpx.HTTPStatusError(
+        f"status {status_code}",
+        request=request,
+        response=response,
+    )
+
+
 class FetchIsolationTests(unittest.TestCase):
     def test_poll_feed_converts_parse_exception_to_error_result(self) -> None:
         feed = _build_feed("broken", "https://example.com/broken.xml")
@@ -131,7 +141,7 @@ class FetchIsolationTests(unittest.TestCase):
             bootstrap_mode: bool,
             host_limiters: dict[str, object],
         ) -> FeedPollResult:
-            del client, bootstrap_mode, host_limiters
+            del client, feed_state, bootstrap_mode, host_limiters
             if feed.id == broken_feed.id:
                 raise RuntimeError("worker crash")
             return FeedPollResult(
@@ -170,6 +180,111 @@ class FetchIsolationTests(unittest.TestCase):
             healthy_feed.url,
         )
 
+    def test_poll_feed_retries_415_with_relaxed_headers_and_succeeds(self) -> None:
+        feed = _build_feed("negotiation", "https://example.com/feed.xml")
+        previous_state = FeedState(
+            etag='"etag-old"',
+            last_modified="Wed, 01 Jan 2025 00:00:00 GMT",
+            last_success_at="2026-03-26T00:00:00+00:00",
+            last_success_source=feed.url,
+        )
+        seen_request_headers: list[dict[str, str]] = []
+
+        def fake_get(
+            client: httpx.Client,
+            source_url: str,
+            *,
+            headers: dict[str, str],
+            timeout: int,
+            host_limiters: dict[str, object],
+        ) -> httpx.Response:
+            del client, timeout, host_limiters
+            seen_request_headers.append(dict(headers))
+            if len(seen_request_headers) == 1:
+                raise _build_http_status_error(source_url, 415)
+            return _build_response(source_url, b"healthy")
+
+        def fake_parse(content: bytes) -> SimpleNamespace:
+            self.assertEqual(content, b"healthy")
+            return SimpleNamespace(
+                feed={"title": "Recovered Feed"},
+                entries=[],
+                bozo=False,
+            )
+
+        with httpx.Client() as client:
+            with (
+                patch("fluxa.fetch._get_with_host_limit", side_effect=fake_get),
+                patch("fluxa.fetch.feedparser.parse", side_effect=fake_parse),
+            ):
+                result = poll_feed(
+                    client,
+                    feed,
+                    previous_state,
+                    bootstrap_mode=False,
+                    host_limiters={},
+                )
+
+        self.assertEqual(result.status, "ok")
+        self.assertEqual(result.http_status, 200)
+        self.assertEqual(len(result.attempts), 2)
+        self.assertEqual(result.attempts[0].http_status, 415)
+        self.assertEqual(result.attempts[1].status, "ok")
+        self.assertEqual(
+            seen_request_headers[0]["If-None-Match"],
+            '"etag-old"',
+        )
+        self.assertEqual(
+            seen_request_headers[0]["If-Modified-Since"],
+            "Wed, 01 Jan 2025 00:00:00 GMT",
+        )
+        self.assertNotIn("If-None-Match", seen_request_headers[1])
+        self.assertNotIn("If-Modified-Since", seen_request_headers[1])
+        self.assertEqual(seen_request_headers[1]["Accept"], "*/*")
+
+    def test_poll_feed_clears_conditional_cache_after_repeated_415(self) -> None:
+        feed = _build_feed("negotiation-stuck", "https://example.com/feed.xml")
+        previous_state = FeedState(
+            etag='"etag-old"',
+            last_modified="Wed, 01 Jan 2025 00:00:00 GMT",
+            last_success_at="2026-03-26T00:00:00+00:00",
+            last_success_source=feed.url,
+        )
+        seen_request_headers: list[dict[str, str]] = []
+
+        def fake_get(
+            client: httpx.Client,
+            source_url: str,
+            *,
+            headers: dict[str, str],
+            timeout: int,
+            host_limiters: dict[str, object],
+        ) -> httpx.Response:
+            del client, timeout, host_limiters
+            seen_request_headers.append(dict(headers))
+            raise _build_http_status_error(source_url, 415)
+
+        with httpx.Client() as client:
+            with patch("fluxa.fetch._get_with_host_limit", side_effect=fake_get):
+                result = poll_feed(
+                    client,
+                    feed,
+                    previous_state,
+                    bootstrap_mode=False,
+                    host_limiters={},
+                )
+
+        self.assertEqual(result.status, "error")
+        self.assertEqual(result.http_status, 415)
+        self.assertEqual(len(result.attempts), 2)
+        self.assertIsNone(result.next_state.etag)
+        self.assertIsNone(result.next_state.last_modified)
+        self.assertIsNone(result.next_state.sources[feed.url].etag)
+        self.assertIsNone(result.next_state.sources[feed.url].last_modified)
+        self.assertEqual(seen_request_headers[1]["Accept"], "*/*")
+        self.assertNotIn("If-None-Match", seen_request_headers[1])
+        self.assertNotIn("If-Modified-Since", seen_request_headers[1])
+
 
 if __name__ == "__main__":
-    unittest.main()
+    _ = unittest.main()

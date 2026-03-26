@@ -39,6 +39,7 @@ _MAX_RETRIES = 2
 _RETRY_BACKOFF_SECONDS = 0.5
 _RECOVERY_WINDOW_MULTIPLIER = 5
 _RECOVERY_MAX_ENTRIES_CAP = 100
+_NEGOTIATION_ERROR_STATUSES = {406, 415}
 _SUCCESS_STATUSES = {"ok", "parse-warning", "not-modified"}
 
 
@@ -199,9 +200,10 @@ def _poll_source(
     entry_limit: int,
 ) -> _SourcePollResult:
     # 条件请求按来源 URL 维度缓存，避免不同 RSSHub 实例之间错误复用 ETag / Last-Modified。
-    request_headers = _build_conditional_headers(source_state)
+    request_headers = _build_request_headers(source_state)
     attempts: list[FeedAttemptResult] = []
     total_attempts = _MAX_RETRIES + 1
+    used_relaxed_retry = False
 
     for attempt_number in range(1, total_attempts + 1):
         try:
@@ -219,6 +221,7 @@ def _poll_source(
                         attempt_number=attempt_number,
                         status="not-modified",
                         http_status=304,
+                        note=_describe_request_mode(request_headers),
                     )
                 )
                 return _SourcePollResult(
@@ -265,6 +268,7 @@ def _poll_source(
                         status="error",
                         http_status=response.status_code,
                         error=error_text,
+                        note=_describe_request_mode(request_headers),
                     )
                 )
                 return _build_source_error_result(
@@ -284,6 +288,7 @@ def _poll_source(
                     attempt_number=attempt_number,
                     status=status,
                     http_status=response.status_code,
+                    note=_describe_request_mode(request_headers),
                 )
             )
             return _SourcePollResult(
@@ -308,6 +313,11 @@ def _poll_source(
             response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
             http_status = response.status_code if response is not None else None
             error_text = str(exc)
+            will_retry_with_relaxed_headers = _should_retry_with_relaxed_headers(
+                http_status,
+                request_headers=request_headers,
+                used_relaxed_retry=used_relaxed_retry,
+            )
             attempts.append(
                 FeedAttemptResult(
                     source_url=source_url,
@@ -315,8 +325,21 @@ def _poll_source(
                     status="error",
                     http_status=http_status,
                     error=error_text,
+                    note=_build_attempt_note(
+                        request_headers,
+                        will_retry_with_relaxed_headers=will_retry_with_relaxed_headers,
+                    ),
                 )
             )
+            if will_retry_with_relaxed_headers:
+                request_headers = _build_request_headers(
+                    source_state,
+                    use_relaxed_accept=True,
+                    disable_conditionals=True,
+                )
+                used_relaxed_retry = True
+                sleep(_RETRY_BACKOFF_SECONDS * attempt_number)
+                continue
             if attempt_number < total_attempts and _is_retryable_error(exc):
                 # 只对瞬时错误重试，避免把 4xx 配置错误或永久失效源重复打满。
                 sleep(_RETRY_BACKOFF_SECONDS * attempt_number)
@@ -390,12 +413,20 @@ def _resolve_source_urls(
     return tuple(ordered_urls)
 
 
-def _build_conditional_headers(source_state: FeedSourceState) -> dict[str, str]:
+def _build_request_headers(
+    source_state: FeedSourceState,
+    *,
+    use_relaxed_accept: bool = False,
+    disable_conditionals: bool = False,
+) -> dict[str, str]:
     request_headers: dict[str, str] = {}
-    if source_state.etag:
-        request_headers["If-None-Match"] = source_state.etag
-    if source_state.last_modified:
-        request_headers["If-Modified-Since"] = source_state.last_modified
+    if not disable_conditionals:
+        if source_state.etag:
+            request_headers["If-None-Match"] = source_state.etag
+        if source_state.last_modified:
+            request_headers["If-Modified-Since"] = source_state.last_modified
+    if use_relaxed_accept:
+        request_headers["Accept"] = "*/*"
     return request_headers
 
 
@@ -428,13 +459,17 @@ def _build_source_error_result(
     error: str,
     attempts: list[FeedAttemptResult],
 ) -> _SourcePollResult:
+    etag, last_modified = _resolve_error_cache(
+        source_state,
+        http_status=http_status,
+    )
     return _SourcePollResult(
         source_url=source_url,
         status="error",
         http_status=http_status,
         next_source_state=FeedSourceState(
-            etag=source_state.etag,
-            last_modified=source_state.last_modified,
+            etag=etag,
+            last_modified=last_modified,
             last_checked_at=checked_at,
             last_success_at=source_state.last_success_at,
             last_http_status=http_status,
@@ -668,6 +703,56 @@ def _is_retryable_error(exc: httpx.HTTPError) -> bool:
 def _extract_host(source_url: str) -> str:
     parts = urlsplit(source_url)
     return parts.netloc.lower() or source_url
+
+
+def _build_attempt_note(
+    request_headers: dict[str, str],
+    *,
+    will_retry_with_relaxed_headers: bool,
+) -> str | None:
+    request_mode = _describe_request_mode(request_headers)
+    if will_retry_with_relaxed_headers:
+        if request_mode:
+            return f"{request_mode}，已切换宽松请求头重试"
+        return "已切换宽松请求头重试"
+    return request_mode
+
+
+def _describe_request_mode(request_headers: dict[str, str]) -> str | None:
+    used_conditionals = bool(
+        request_headers.get("If-None-Match") or request_headers.get("If-Modified-Since")
+    )
+    is_relaxed_accept = request_headers.get("Accept") == "*/*"
+    if is_relaxed_accept and not used_conditionals:
+        return "宽松请求头"
+    if used_conditionals:
+        return "条件请求"
+    return None
+
+
+def _should_retry_with_relaxed_headers(
+    http_status: int | None,
+    *,
+    request_headers: dict[str, str],
+    used_relaxed_retry: bool,
+) -> bool:
+    if used_relaxed_retry or http_status not in _NEGOTIATION_ERROR_STATUSES:
+        return False
+    return bool(
+        request_headers.get("If-None-Match")
+        or request_headers.get("If-Modified-Since")
+        or request_headers.get("Accept") != "*/*"
+    )
+
+
+def _resolve_error_cache(
+    source_state: FeedSourceState,
+    *,
+    http_status: int | None,
+) -> tuple[str | None, str | None]:
+    if http_status in _NEGOTIATION_ERROR_STATUSES:
+        return None, None
+    return source_state.etag, source_state.last_modified
 
 
 def _parse_feed_response(content: bytes) -> _ParsedFeed:
