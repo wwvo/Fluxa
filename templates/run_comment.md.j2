@@ -1,5 +1,32 @@
-<!-- rss-slot:{{ slot }} -->
+<!-- {{ run_marker }} -->
 
 ## {{ run_time }}
 
-本轮检查：{{ checked_count }} feeds
+- Run ID：`{{ run_id }}`
+- 本轮检查：{{ checked_count }} feeds
+- 新增文章：{{ new_count }}
+- 错误 feed：{{ error_count }}
+- 304 / 无变化：{{ not_modified_count }}
+
+{% if grouped_entries %}
+### 新文章
+{% for group in grouped_entries %}
+#### {{ group.feed_title }}（{{ group.count }}）
+{% for entry in group.entries %}
+{% if entry.url -%}
+- [{{ entry.title }}]({{ entry.url }}){% if entry.published_at %} · {{ entry.published_at }}{% endif %}
+{% else -%}
+- {{ entry.title }}{% if entry.published_at %} · {{ entry.published_at }}{% endif %}
+{% endif -%}
+{% endfor %}
+{% endfor %}
+{% else %}
+本轮没有发现新文章。
+{% endif %}
+
+{% if errors %}
+### 异常 feed
+{% for item in errors %}
+- `{{ item.feed_id }}` / {{ item.feed_title }}: {{ item.error }}
+{% endfor %}
+{% endif %}

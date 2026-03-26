@@ -10,6 +10,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "python-dateutil>=2.9.0.post0",
     "pyyaml>=6.0.2",
+    "tzdata>=2025.2",
 ]
 
 [project.scripts]

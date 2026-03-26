@@ -20,6 +20,10 @@ class StateError(FluxaError):
     """状态文件错误。"""
 
 
+class PublishError(FluxaError):
+    """GitHub 发布错误。"""
+
+
 @dataclass(slots=True, frozen=True)
 class NormalizedEntry:
     """统一后的 RSS 条目。"""
