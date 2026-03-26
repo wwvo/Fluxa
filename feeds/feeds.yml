@@ -13,4 +13,109 @@ defaults:
 #     timeout_seconds: 20
 #     max_entries_per_feed: 20
 #     max_seen_ids: 300
-feeds: []
+feeds:
+  - id: anthony-fu
+    title: Anthony Fu
+    url: https://antfu.me/feed.xml
+  - id: bang-blog
+    title: bang blog
+    url: https://blog.cnbang.net/feed/
+  - id: tangqiao-blog
+    title: 唐巧博客
+    url: https://blog.devtang.com/atom.xml
+  - id: sorrycc-blog
+    title: Sorrycc Blog
+    url: https://blog.sorrycc.com/api/feed
+  - id: css-tricks-articles
+    title: CSS-Tricks Articles
+    url: https://css-tricks.com/category/articles/feed/
+  - id: appinn
+    title: 小众软件
+    url: https://feeds.appinn.com/appinns/
+  - id: ruanyifeng-blog
+    title: 阮一峰的网络日志
+    url: https://feeds.feedburner.com/ruanyifeng
+  - id: github-blog
+    title: GitHub Blog
+    url: https://github.blog/feed/
+  - id: juya-ai-daily
+    title: 橘鸦AI早报
+    url: https://imjuya.github.io/juya-ai-daily/rss.xml
+  - id: lala-im
+    title: 荒岛
+    url: https://lala.im/feed
+  - id: linux-do-hot
+    title: LINUX DO 热门话题
+    url: https://linuxdorss.longpink.com/top.xml
+  - id: openai-news
+    title: OpenAI News
+    url: https://openai.com/news/rss.xml
+  - id: 36kr-hot
+    title: 36Kr 热榜
+    url: https://rsshub.app/36kr/hot-list
+  - id: baoyu-blog
+    title: 宝玉的博客
+    url: https://rsshub.app/baoyu/blog
+  - id: bestofjs-monthly
+    title: Best of JS Monthly Rankings
+    url: https://rsshub.app/bestofjs/rankings/monthly
+  - id: claude-blog
+    title: Claude Blog
+    url: https://rsshub.app/claude/blog
+  - id: css-tricks-popular
+    title: CSS-Tricks Popular
+    url: https://rsshub.app/css-tricks/popular
+  - id: cursor-blog
+    title: Cursor Blog
+    url: https://rsshub.app/cursor/blog
+  - id: cursor-changelog
+    title: Cursor Changelog
+    url: https://rsshub.app/cursor/changelog
+  - id: devto-guides
+    title: DEV.to Trending Guides
+    url: https://rsshub.app/dev.to/guides
+  - id: devto-top-week
+    title: dev.to top (week)
+    url: https://rsshub.app/dev.to/top/week
+  - id: foreverblog
+    title: 十年之约
+    url: https://rsshub.app/foreverblog/feeds
+  - id: ruanyifeng-weekly-issues
+    title: 阮一峰周刊 Issues
+    url: https://rsshub.app/github/issue/ruanyf/weekly
+  - id: github-trending-daily
+    title: GitHub Trending 日榜
+    url: https://rsshub.app/github/trending/daily/any
+  - id: github-trending-weekly
+    title: GitHub Trending 周榜
+    url: https://rsshub.app/github/trending/weekly/any
+  - id: hellogithub-articles
+    title: HelloGitHub 最近文章
+    url: https://rsshub.app/hellogithub/article
+  - id: infoq-recommend
+    title: InfoQ 推荐
+    url: https://rsshub.app/infoq/recommend
+  - id: ithome-ranking-24h
+    title: IT之家 24 小时热榜
+    url: https://rsshub.app/ithome/ranking/24h
+  - id: kiro-blog
+    title: Kiro Blog
+    url: https://rsshub.app/kiro/blog
+  - id: qwen-blog-zh
+    title: Qwen Blog
+    url: https://rsshub.app/qwenlm/blog/zh
+  - id: readhub-daily
+    title: Readhub 每日早报
+    url: https://rsshub.app/readhub/daily
+  - id: sspai-index
+    title: 少数派
+    url: https://rsshub.app/sspai/index
+  - id: rustcc
+    title: Rust.cc
+    url: https://rustcc.cn/rss
+  - id: supertechfans-hn-daily
+    title: HackerNews 每日摘要
+    url: https://www.supertechfans.com/cn/index.xml
+  - id: v2ex-tech
+    title: V2EX 技术
+    url: https://www.v2ex.com/feed/tab/tech.xml
