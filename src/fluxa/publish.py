@@ -10,9 +10,11 @@ import json
 import os
 import subprocess
 import tempfile
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fluxa.models import PublishError, RunSummary
@@ -143,7 +145,7 @@ def upsert_run_issue(
 
 def _write_issue_body(temp_dir: Path, issue_body: str) -> Path:
     issue_path = temp_dir / "issue.md"
-    issue_path.write_text(issue_body, encoding="utf-8")
+    _ = issue_path.write_text(issue_body, encoding="utf-8")
     return issue_path
 
 
@@ -153,7 +155,7 @@ def _update_issue(
     issue_title: str,
     issue_body_path: Path,
 ) -> None:
-    _run_gh(
+    _ = _run_gh(
         [
             "api",
             f"repos/{repo}/issues/{issue_number}",
@@ -182,9 +184,13 @@ def _create_issue(
             f"body=@{issue_body_path}",
         ]
     )
-    if not isinstance(created, dict) or "number" not in created:
+    created_issue = _as_json_mapping(created)
+    if created_issue is None:
         raise PublishError("创建 issue 失败，未返回 issue number")
-    return int(created["number"])
+    issue_number = _coerce_issue_number(created_issue.get("number"))
+    if issue_number is None:
+        raise PublishError("创建 issue 失败，未返回 issue number")
+    return issue_number
 
 
 def _find_run_issue_number(repo: str, run_marker: str) -> int | None:
@@ -204,35 +210,63 @@ def _find_run_issue_number(repo: str, run_marker: str) -> int | None:
                 f"page={page}",
             ]
         )
-        if not isinstance(issues, list):
+        issue_items = _as_json_list(issues)
+        if issue_items is None:
             raise PublishError("gh issue 查询返回了异常结果")
-        if not issues:
+        if not issue_items:
             return None
 
-        for issue in issues:
+        for issue in issue_items:
             issue_number = _match_issue_number(issue, marker)
             if issue_number is not None:
                 return issue_number
 
-        if len(issues) < 100:
+        if len(issue_items) < 100:
             return None
         page += 1
 
 
 def _match_issue_number(issue: object, marker: str) -> int | None:
-    if not isinstance(issue, dict) or "pull_request" in issue:
+    issue_data = _as_json_mapping(issue)
+    if issue_data is None or "pull_request" in issue_data:
         return None
-    body = str(issue.get("body", ""))
+    body = _coerce_text(issue_data.get("body"))
     if marker not in body:
         return None
-    issue_number = issue.get("number")
-    if isinstance(issue_number, int) and not isinstance(issue_number, bool):
+    issue_number = _coerce_issue_number(issue_data.get("number"))
+    if issue_number is not None:
         return issue_number
     raise PublishError("命中的 issue 缺少有效的 number 字段")
 
 
 def _wrap_run_marker(run_marker: str) -> str:
     return f"<!-- {run_marker} -->"
+
+
+def _as_json_list(value: object) -> list[object] | None:
+    if not isinstance(value, list):
+        return None
+    return cast(list[object], value)
+
+
+def _as_json_mapping(value: object) -> Mapping[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    return cast(Mapping[str, object], value)
+
+
+def _coerce_text(value: object) -> str:
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _coerce_issue_number(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    return None
 
 
 def _resolve_repo(repo: str | None, *, required: bool) -> str | None:
@@ -250,7 +284,7 @@ def _resolve_run_id(run_id: str | None) -> str:
     resolved = run_id or os.getenv("GITHUB_RUN_ID")
     if resolved:
         return str(resolved)
-    return datetime.utcnow().strftime("manual-%Y%m%d%H%M%S")
+    return datetime.now(tz=UTC).strftime("manual-%Y%m%d%H%M%S")
 
 
 def _load_timezone(timezone_name: str) -> ZoneInfo:
@@ -285,6 +319,6 @@ def _run_gh(args: list[str]) -> str:
 def _run_gh_json(args: list[str]) -> object:
     output = _run_gh(args)
     try:
-        return json.loads(output)
+        return cast(object, json.loads(output))
     except json.JSONDecodeError as exc:
         raise PublishError(f"gh JSON 输出解析失败: {' '.join(args)}") from exc
