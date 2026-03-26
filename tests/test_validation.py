@@ -46,6 +46,29 @@ class StrictIntValidationTests(unittest.TestCase):
         with self.assertRaises(StateError):
             AppState.from_dict({"schema_version": True, "bootstrap_completed": False})
 
+    def test_feed_source_state_rejects_non_string_etag(self) -> None:
+        with self.assertRaises(StateError):
+            FeedSourceState.from_dict({"etag": 123})
+
+    def test_feed_state_rejects_non_string_seen_id_item(self) -> None:
+        with self.assertRaises(StateError):
+            FeedState.from_dict(
+                {
+                    "seen_ids": [123],
+                    "sources": {},
+                }
+            )
+
+    def test_feed_state_rejects_non_string_last_success_source(self) -> None:
+        with self.assertRaises(StateError):
+            FeedState.from_dict(
+                {
+                    "seen_ids": [],
+                    "last_success_source": False,
+                    "sources": {},
+                }
+            )
+
 
 class StrictStringValidationTests(unittest.TestCase):
     def test_config_rejects_non_string_feed_id(self) -> None:

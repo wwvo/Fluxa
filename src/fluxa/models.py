@@ -114,12 +114,24 @@ class FeedSourceState:
         if last_http_status is not None and not _is_strict_int(last_http_status):
             raise StateError("state.feed.source.last_http_status 必须是整数")
         return cls(
-            etag=_coerce_optional_str(payload.get("etag")),
-            last_modified=_coerce_optional_str(payload.get("last_modified")),
-            last_checked_at=_coerce_optional_str(payload.get("last_checked_at")),
-            last_success_at=_coerce_optional_str(payload.get("last_success_at")),
+            etag=_coerce_optional_str(payload.get("etag"), "state.feed.source.etag"),
+            last_modified=_coerce_optional_str(
+                payload.get("last_modified"),
+                "state.feed.source.last_modified",
+            ),
+            last_checked_at=_coerce_optional_str(
+                payload.get("last_checked_at"),
+                "state.feed.source.last_checked_at",
+            ),
+            last_success_at=_coerce_optional_str(
+                payload.get("last_success_at"),
+                "state.feed.source.last_success_at",
+            ),
             last_http_status=last_http_status,
-            last_error=_coerce_optional_str(payload.get("last_error")),
+            last_error=_coerce_optional_str(
+                payload.get("last_error"),
+                "state.feed.source.last_error",
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -152,7 +164,13 @@ class FeedState:
         seen_ids_raw = payload.get("seen_ids", [])
         if not isinstance(seen_ids_raw, list):
             raise StateError("state.feed.seen_ids 必须是数组")
-        seen_ids = [str(item) for item in seen_ids_raw if str(item).strip()]
+        seen_ids: list[str] = []
+        for index, item in enumerate(seen_ids_raw):
+            if not isinstance(item, str):
+                raise StateError(f"state.feed.seen_ids[{index}] 必须是字符串")
+            text = item.strip()
+            if text:
+                seen_ids.append(text)
         last_http_status = payload.get("last_http_status")
         if last_http_status is not None and not _is_strict_int(last_http_status):
             raise StateError("state.feed.last_http_status 必须是整数")
@@ -170,15 +188,28 @@ class FeedState:
             sources[source_url] = FeedSourceState.from_dict(source_payload)
 
         return cls(
-            etag=_coerce_optional_str(payload.get("etag")),
-            last_modified=_coerce_optional_str(payload.get("last_modified")),
+            etag=_coerce_optional_str(payload.get("etag"), "state.feed.etag"),
+            last_modified=_coerce_optional_str(
+                payload.get("last_modified"),
+                "state.feed.last_modified",
+            ),
             seen_ids=seen_ids,
-            last_checked_at=_coerce_optional_str(payload.get("last_checked_at")),
-            last_success_at=_coerce_optional_str(payload.get("last_success_at")),
+            last_checked_at=_coerce_optional_str(
+                payload.get("last_checked_at"),
+                "state.feed.last_checked_at",
+            ),
+            last_success_at=_coerce_optional_str(
+                payload.get("last_success_at"),
+                "state.feed.last_success_at",
+            ),
             last_http_status=last_http_status,
-            last_error=_coerce_optional_str(payload.get("last_error")),
+            last_error=_coerce_optional_str(
+                payload.get("last_error"),
+                "state.feed.last_error",
+            ),
             last_success_source=_coerce_optional_str(
-                payload.get("last_success_source")
+                payload.get("last_success_source"),
+                "state.feed.last_success_source",
             ),
             sources=sources,
         )
@@ -353,10 +384,12 @@ class RunSummary:
         ]
 
 
-def _coerce_optional_str(value: Any) -> str | None:
+def _coerce_optional_str(value: Any, field_name: str) -> str | None:
     if value is None:
         return None
-    text = str(value).strip()
+    if not isinstance(value, str):
+        raise StateError(f"{field_name} 必须是字符串")
+    text = value.strip()
     return text or None
 
 
