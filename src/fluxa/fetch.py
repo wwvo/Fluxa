@@ -247,21 +247,41 @@ def _poll_source(
                 )
 
             response.raise_for_status()
-            parsed = feedparser.parse(response.content)
-            # feedparser 解析容错较强；只要能提取到条目，就仍按成功处理。
-            feed_title = feed.title or parsed.feed.get("title") or feed.id
-            entries = normalize_entries(
-                feed,
-                feed_title,
-                parsed.entries,
-                entry_limit=entry_limit,
-            )
-            new_entries, merged_seen_ids = compute_entry_delta(
-                entries,
-                seen_ids,
-                max_seen_ids=feed.max_seen_ids,
-                suppress_new_entries=bootstrap_mode,
-            )
+            try:
+                parsed = feedparser.parse(response.content)
+                # feedparser 解析容错较强；只要能提取到条目，就仍按成功处理。
+                feed_title = feed.title or parsed.feed.get("title") or feed.id
+                entries = normalize_entries(
+                    feed,
+                    feed_title,
+                    parsed.entries,
+                    entry_limit=entry_limit,
+                )
+                new_entries, merged_seen_ids = compute_entry_delta(
+                    entries,
+                    seen_ids,
+                    max_seen_ids=feed.max_seen_ids,
+                    suppress_new_entries=bootstrap_mode,
+                )
+            except Exception as exc:
+                error_text = _format_parse_error(exc)
+                attempts.append(
+                    FeedAttemptResult(
+                        source_url=source_url,
+                        attempt_number=attempt_number,
+                        status="error",
+                        http_status=response.status_code,
+                        error=error_text,
+                    )
+                )
+                return _build_source_error_result(
+                    source_url,
+                    source_state,
+                    checked_at=checked_at,
+                    http_status=response.status_code,
+                    error=error_text,
+                    attempts=attempts,
+                )
             status = "ok"
             if parsed.bozo and not entries:
                 status = "parse-warning"
@@ -308,36 +328,22 @@ def _poll_source(
                 # 只对瞬时错误重试，避免把 4xx 配置错误或永久失效源重复打满。
                 sleep(_RETRY_BACKOFF_SECONDS * attempt_number)
                 continue
-            return _SourcePollResult(
-                source_url=source_url,
-                status="error",
+            return _build_source_error_result(
+                source_url,
+                source_state,
+                checked_at=checked_at,
                 http_status=http_status,
-                next_source_state=FeedSourceState(
-                    etag=source_state.etag,
-                    last_modified=source_state.last_modified,
-                    last_checked_at=checked_at,
-                    last_success_at=source_state.last_success_at,
-                    last_http_status=http_status,
-                    last_error=error_text,
-                ),
-                attempts=attempts,
                 error=error_text,
+                attempts=attempts,
             )
 
-    return _SourcePollResult(
-        source_url=source_url,
-        status="error",
+    return _build_source_error_result(
+        source_url,
+        source_state,
+        checked_at=checked_at,
         http_status=None,
-        next_source_state=FeedSourceState(
-            etag=source_state.etag,
-            last_modified=source_state.last_modified,
-            last_checked_at=checked_at,
-            last_success_at=source_state.last_success_at,
-            last_http_status=None,
-            last_error="未知错误",
-        ),
-        attempts=attempts,
         error="未知错误",
+        attempts=attempts,
     )
 
 
@@ -403,6 +409,32 @@ def _get_with_host_limit(
         )
     finally:
         limiter.release()
+
+
+def _build_source_error_result(
+    source_url: str,
+    source_state: FeedSourceState,
+    *,
+    checked_at: str,
+    http_status: int | None,
+    error: str,
+    attempts: list[FeedAttemptResult],
+) -> _SourcePollResult:
+    return _SourcePollResult(
+        source_url=source_url,
+        status="error",
+        http_status=http_status,
+        next_source_state=FeedSourceState(
+            etag=source_state.etag,
+            last_modified=source_state.last_modified,
+            last_checked_at=checked_at,
+            last_success_at=source_state.last_success_at,
+            last_http_status=http_status,
+            last_error=error,
+        ),
+        attempts=attempts,
+        error=error,
+    )
 
 
 def _build_success_state(
@@ -510,6 +542,11 @@ def _is_retryable_error(exc: httpx.HTTPError) -> bool:
 def _extract_host(source_url: str) -> str:
     parts = urlsplit(source_url)
     return parts.netloc.lower() or source_url
+
+
+def _format_parse_error(exc: Exception) -> str:
+    detail = str(exc).strip() or exc.__class__.__name__
+    return f"解析或标准化 feed 失败: {detail}"
 
 
 def _utcnow_iso() -> str:
