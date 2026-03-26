@@ -1,4 +1,8 @@
-"""轮询流程编排。"""
+"""轮询流程编排。
+
+Runner 只负责把配置和状态送入抓取层，并产出一次运行的 `RunSummary`。
+它是 CLI 层与抓取层之间的薄编排层，适合承接未来更复杂的调度策略。
+"""
 
 from __future__ import annotations
 

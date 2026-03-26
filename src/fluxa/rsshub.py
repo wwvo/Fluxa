@@ -1,4 +1,8 @@
-"""RSSHub 公共实例与回退策略。"""
+"""RSSHub 公共实例与回退策略。
+
+本模块把 RSSHub 实例池维护集中在一处，避免 `feeds.yml` 为每个 RSSHub feed 重复写 fallback。
+当主源属于受管 RSSHub 实例时，这里会按同一路由自动生成备用来源列表。
+"""
 
 from __future__ import annotations
 

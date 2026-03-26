@@ -1,4 +1,8 @@
-"""RSS 条目标准化。"""
+"""RSS 条目标准化。
+
+本模块把不同 feedparser 输出收敛为统一的 `NormalizedEntry`。
+后续的增量判断、Markdown 渲染和 issue 发布都依赖这里提供的稳定字段。
+"""
 
 from __future__ import annotations
 

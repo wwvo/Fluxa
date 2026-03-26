@@ -1,4 +1,10 @@
-"""Fluxa 核心数据模型。"""
+"""Fluxa 核心数据模型。
+
+这里定义了 Fluxa 在各模块之间传递的统一数据结构：
+- Config 层负责描述输入源与抓取参数
+- State 层负责描述持久化缓存与增量上下文
+- Result / Summary 层负责承接一次轮询与发布流程的输出
+"""
 
 from __future__ import annotations
 
@@ -171,7 +177,9 @@ class FeedState:
             last_success_at=_coerce_optional_str(payload.get("last_success_at")),
             last_http_status=last_http_status,
             last_error=_coerce_optional_str(payload.get("last_error")),
-            last_success_source=_coerce_optional_str(payload.get("last_success_source")),
+            last_success_source=_coerce_optional_str(
+                payload.get("last_success_source")
+            ),
             sources=sources,
         )
 

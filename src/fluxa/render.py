@@ -1,4 +1,8 @@
-"""Markdown 模板渲染。"""
+"""Markdown 模板渲染。
+
+本模块把 `RunSummary` 投影为 issue 模板可直接消费的数据结构，并负责最终 Markdown 渲染。
+它是“业务数据”和“展示文案”之间的边界层，方便后续单独调整模板而不改抓取逻辑。
+"""
 
 from __future__ import annotations
 

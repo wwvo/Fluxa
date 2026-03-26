@@ -1,4 +1,8 @@
-"""使用 gh 发布到 GitHub issue。"""
+"""使用 gh 发布到 GitHub issue。
+
+本模块位于执行链路的最后一段，负责把 `RunSummary` 转为 issue 写操作。
+它不关心 RSS 抓取细节，只负责 issue 幂等查找、创建和更新。
+"""
 
 from __future__ import annotations
 

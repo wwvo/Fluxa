@@ -1,4 +1,8 @@
-"""RSS 抓取与条件请求。"""
+"""RSS 抓取与条件请求。
+
+本模块负责网络层和来源调度层：并发抓取、条件请求、fallback、retry、host 限流都在这里完成。
+它的输出是 `FeedPollResult`，供后续汇总、渲染和发布阶段消费。
+"""
 
 from __future__ import annotations
 

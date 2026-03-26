@@ -1,4 +1,8 @@
-"""Fluxa CLI entry."""
+"""Fluxa CLI 入口。
+
+主流程按“加载配置 -> 加载状态 -> 执行轮询 -> 选择性发布 issue -> 保存状态”的顺序推进。
+如果你想快速理解 Fluxa 一次完整运行是怎样串起来的，这个模块是最好的入口。
+"""
 
 from __future__ import annotations
 
