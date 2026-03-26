@@ -3,6 +3,8 @@
 # Fluxa
 *使用 Git 仓库与 GitHub Actions 驱动的轻量 RSS Digest 发布器*
 
+[![CNB Repo](https://img.shields.io/badge/CNB-wwvo%2FFluxa-2F80ED?style=flat-square&logo=cloudnativebuild&logoColor=white)](https://cnb.cool/wwvo/Fluxa)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-wwvo%2FFluxa-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wwvo/Fluxa)
 [![RSS Digest](https://img.shields.io/github/actions/workflow/status/wwvo/Fluxa/rss-digest.yml?style=flat-square&label=RSS%20Digest)](https://github.com/wwvo/Fluxa/actions/workflows/rss-digest.yml)
 [![Python](https://img.shields.io/badge/python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/uv-managed-4B5563?style=flat-square)](https://docs.astral.sh/uv/)
