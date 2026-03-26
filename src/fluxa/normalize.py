@@ -26,8 +26,8 @@ def normalize_entries(
     *,
     entry_limit: int | None = None,
 ) -> list[NormalizedEntry]:
-    entries: list[NormalizedEntry] = []
     limit = entry_limit or feed.max_entries_per_feed
+    entries: list[NormalizedEntry] = []
     for raw_entry in raw_entries[:limit]:
         normalized = normalize_entry(feed, feed_title, raw_entry)
         if normalized is not None:

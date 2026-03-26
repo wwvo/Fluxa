@@ -68,14 +68,14 @@ class FeedConfig:
 
     @property
     def source_urls(self) -> tuple[str, ...]:
-        deduped: list[str] = []
-        seen: set[str] = set()
+        ordered_urls: list[str] = []
+        seen_urls: set[str] = set()
         for source_url in (self.url, *self.fallback_urls):
-            if source_url in seen:
+            if source_url in seen_urls:
                 continue
-            seen.add(source_url)
-            deduped.append(source_url)
-        return tuple(deduped)
+            seen_urls.add(source_url)
+            ordered_urls.append(source_url)
+        return tuple(ordered_urls)
 
 
 @dataclass(slots=True, frozen=True)
@@ -93,7 +93,7 @@ class AppConfig:
 
 @dataclass(slots=True)
 class FeedSourceState:
-    """单个来源 URL 的持久化状态。"""
+    """单个来源 URL 的缓存与最近状态。"""
 
     etag: str | None = None
     last_modified: str | None = None
@@ -103,21 +103,16 @@ class FeedSourceState:
     last_error: str | None = None
 
     @classmethod
-    def from_dict(
-        cls,
-        payload: dict[str, Any],
-        *,
-        field_prefix: str,
-    ) -> "FeedSourceState":
+    def from_dict(cls, payload: dict[str, Any]) -> "FeedSourceState":
+        last_http_status = payload.get("last_http_status")
+        if last_http_status is not None and not isinstance(last_http_status, int):
+            raise StateError("state.feed.source.last_http_status 必须是整数")
         return cls(
             etag=_coerce_optional_str(payload.get("etag")),
             last_modified=_coerce_optional_str(payload.get("last_modified")),
             last_checked_at=_coerce_optional_str(payload.get("last_checked_at")),
             last_success_at=_coerce_optional_str(payload.get("last_success_at")),
-            last_http_status=_coerce_optional_int(
-                payload.get("last_http_status"),
-                field_name=f"{field_prefix}.last_http_status",
-            ),
+            last_http_status=last_http_status,
             last_error=_coerce_optional_str(payload.get("last_error")),
         )
 
@@ -152,21 +147,21 @@ class FeedState:
         if not isinstance(seen_ids_raw, list):
             raise StateError("state.feed.seen_ids 必须是数组")
         seen_ids = [str(item) for item in seen_ids_raw if str(item).strip()]
+        last_http_status = payload.get("last_http_status")
+        if last_http_status is not None and not isinstance(last_http_status, int):
+            raise StateError("state.feed.last_http_status 必须是整数")
+
         sources_raw = payload.get("sources", {})
         if not isinstance(sources_raw, dict):
             raise StateError("state.feed.sources 必须是对象")
 
         sources: dict[str, FeedSourceState] = {}
-        for source_url, source_state_raw in sources_raw.items():
-            normalized_url = _coerce_optional_str(source_url)
-            if normalized_url is None:
+        for source_url, source_payload in sources_raw.items():
+            if not isinstance(source_url, str) or not source_url.strip():
                 raise StateError("state.feed.sources 的 key 必须是非空字符串")
-            if not isinstance(source_state_raw, dict):
-                raise StateError(f"state.feed.sources.{normalized_url} 必须是对象")
-            sources[normalized_url] = FeedSourceState.from_dict(
-                source_state_raw,
-                field_prefix=f"state.feed.sources.{normalized_url}",
-            )
+            if not isinstance(source_payload, dict):
+                raise StateError(f"state.feed.sources.{source_url} 必须是对象")
+            sources[source_url] = FeedSourceState.from_dict(source_payload)
 
         return cls(
             etag=_coerce_optional_str(payload.get("etag")),
@@ -174,14 +169,9 @@ class FeedState:
             seen_ids=seen_ids,
             last_checked_at=_coerce_optional_str(payload.get("last_checked_at")),
             last_success_at=_coerce_optional_str(payload.get("last_success_at")),
-            last_http_status=_coerce_optional_int(
-                payload.get("last_http_status"),
-                field_name="state.feed.last_http_status",
-            ),
+            last_http_status=last_http_status,
             last_error=_coerce_optional_str(payload.get("last_error")),
-            last_success_source=_coerce_optional_str(
-                payload.get("last_success_source")
-            ),
+            last_success_source=_coerce_optional_str(payload.get("last_success_source")),
             sources=sources,
         )
 
@@ -205,31 +195,33 @@ class FeedState:
         self,
         source_url: str,
         *,
-        allow_legacy: bool = False,
+        primary_url: str,
     ) -> FeedSourceState:
         source_state = self.sources.get(source_url)
         if source_state is not None:
             return source_state
-        if allow_legacy and (self.etag or self.last_modified):
+        if source_url == primary_url and (self.etag or self.last_modified):
             return FeedSourceState(
                 etag=self.etag,
                 last_modified=self.last_modified,
-                last_checked_at=self.last_checked_at,
-                last_success_at=self.last_success_at,
-                last_http_status=self.last_http_status,
-                last_error=self.last_error,
             )
         return FeedSourceState()
 
+    def resolve_primary_cache(self, primary_url: str) -> tuple[str | None, str | None]:
+        primary_state = self.sources.get(primary_url)
+        if primary_state is not None:
+            return primary_state.etag, primary_state.last_modified
+        return self.etag, self.last_modified
 
-@dataclass(slots=True)
+
+@dataclass(slots=True, frozen=True)
 class FeedAttemptResult:
-    """单个来源 URL 的一次抓取尝试结果。"""
+    """单次来源请求的结果。"""
 
     source_url: str
     attempt_number: int
-    outcome: str
-    http_status: int | None = None
+    status: str
+    http_status: int | None
     error: str | None = None
 
 
@@ -242,14 +234,14 @@ class FeedPollResult:
     checked_at: str
     status: str
     http_status: int | None
+    source_url: str | None
     entries: list[NormalizedEntry]
     new_entries: list[NormalizedEntry]
     next_state: FeedState
-    source_url: str | None = None
+    attempts: list[FeedAttemptResult] = field(default_factory=list)
     used_fallback: bool = False
     recovered_from_error: bool = False
     effective_max_entries_per_feed: int | None = None
-    attempts: list[FeedAttemptResult] = field(default_factory=list)
     error: str | None = None
 
 
@@ -358,11 +350,3 @@ def _coerce_optional_str(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
-
-
-def _coerce_optional_int(value: Any, *, field_name: str) -> int | None:
-    if value is None:
-        return None
-    if not isinstance(value, int):
-        raise StateError(f"{field_name} 必须是整数")
-    return value

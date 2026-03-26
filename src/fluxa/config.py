@@ -50,16 +50,14 @@ def load_config(path: Path) -> AppConfig:
         if feed_id in seen_ids:
             raise ConfigError(f"feed id 重复: {feed_id}")
         seen_ids.add(feed_id)
-        feed_url = _read_required_str(item, "url", prefix=f"feeds[{index}]")
 
         feed = FeedConfig(
             id=feed_id,
-            url=feed_url,
+            url=_read_required_str(item, "url", prefix=f"feeds[{index}]"),
             fallback_urls=_read_optional_str_list(
                 item,
                 "fallback_urls",
                 prefix=f"feeds[{index}]",
-                exclude_values={feed_url},
             ),
             title=_read_optional_str(item, "title"),
             enabled=_read_bool(item, "enabled", defaults.enabled),
@@ -122,26 +120,20 @@ def _read_optional_str_list(
     key: str,
     *,
     prefix: str,
-    exclude_values: set[str] | None = None,
 ) -> tuple[str, ...]:
-    value = payload.get(key)
+    value = payload.get(key, [])
     if value is None:
         return ()
     if not isinstance(value, list):
-        raise ConfigError(f"{prefix}.{key} 必须是字符串数组")
+        raise ConfigError(f"{prefix}.{key} 必须是数组")
 
-    excluded = exclude_values or set()
-    deduped: list[str] = []
-    seen: set[str] = set(excluded)
+    normalized_values: list[str] = []
     for index, item in enumerate(value):
         text = str(item).strip()
         if not text:
             raise ConfigError(f"{prefix}.{key}[{index}] 不能为空")
-        if text in seen:
-            continue
-        seen.add(text)
-        deduped.append(text)
-    return tuple(deduped)
+        normalized_values.append(text)
+    return tuple(normalized_values)
 
 
 def _read_bool(payload: Mapping[str, Any], key: str, default: bool) -> bool:
