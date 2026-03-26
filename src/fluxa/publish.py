@@ -32,6 +32,15 @@ class PublishResult:
     issue_date: str
 
 
+@dataclass(slots=True, frozen=True)
+class _IssueDraft:
+    issue_title: str
+    issue_body: str
+    run_id: str
+    issue_date: str
+    run_marker: str
+
+
 def publish_summary(
     summary: RunSummary,
     templates_dir: Path,
@@ -42,12 +51,43 @@ def publish_summary(
     dry_run: bool,
 ) -> PublishResult:
     repo_name = _resolve_repo(repo, required=not dry_run)
+    draft = _build_issue_draft(
+        templates_dir,
+        summary,
+        timezone_name=timezone_name,
+        run_id=run_id,
+    )
+
+    if dry_run:
+        # dry-run 仍然完整渲染 issue，方便本地核对模板和数据，但不触发 gh 写操作。
+        return _build_publish_result(repo_name, draft, issue_number=None)
+
+    with tempfile.TemporaryDirectory(prefix="fluxa-") as temp_dir:
+        temp_path = Path(temp_dir)
+        issue_path = _write_issue_body(temp_path, draft.issue_body)
+
+        issue_number = upsert_run_issue(
+            repo_name,
+            issue_title=draft.issue_title,
+            run_marker=draft.run_marker,
+            issue_body_path=issue_path,
+        )
+
+    return _build_publish_result(repo_name, draft, issue_number=issue_number)
+
+
+def _build_issue_draft(
+    templates_dir: Path,
+    summary: RunSummary,
+    *,
+    timezone_name: str,
+    run_id: str | None,
+) -> _IssueDraft:
     resolved_run_id = _resolve_run_id(run_id)
     timezone = _load_timezone(timezone_name)
     run_time = datetime.now(timezone).replace(microsecond=0)
     issue_date = run_time.date().isoformat()
     issue_title = f"Fluxa Digest | {issue_date} | run {resolved_run_id}"
-
     issue_body = render_run_issue(
         templates_dir,
         summary,
@@ -57,35 +97,27 @@ def publish_summary(
         run_id=resolved_run_id,
         run_time=run_time,
     )
-
-    if dry_run:
-        # dry-run 仍然完整渲染 issue，方便本地核对模板和数据，但不触发 gh 写操作。
-        return PublishResult(
-            repo=repo_name,
-            issue_number=None,
-            issue_title=issue_title,
-            run_id=resolved_run_id,
-            issue_date=issue_date,
-        )
-
-    with tempfile.TemporaryDirectory(prefix="fluxa-") as temp_dir:
-        temp_path = Path(temp_dir)
-        issue_path = temp_path / "issue.md"
-        issue_path.write_text(issue_body, encoding="utf-8")
-
-        issue_number = upsert_run_issue(
-            repo_name,
-            issue_title=issue_title,
-            run_marker=f"fluxa-run:{resolved_run_id}",
-            issue_body_path=issue_path,
-        )
-
-    return PublishResult(
-        repo=repo_name,
-        issue_number=issue_number,
+    return _IssueDraft(
         issue_title=issue_title,
+        issue_body=issue_body,
         run_id=resolved_run_id,
         issue_date=issue_date,
+        run_marker=f"fluxa-run:{resolved_run_id}",
+    )
+
+
+def _build_publish_result(
+    repo: str | None,
+    draft: _IssueDraft,
+    *,
+    issue_number: int | None,
+) -> PublishResult:
+    return PublishResult(
+        repo=repo,
+        issue_number=issue_number,
+        issue_title=draft.issue_title,
+        run_id=draft.run_id,
+        issue_date=draft.issue_date,
     )
 
 
@@ -98,20 +130,43 @@ def upsert_run_issue(
 ) -> int:
     issue_number = _find_run_issue_number(repo, run_marker)
     if issue_number is not None:
-        _run_gh(
-            [
-                "api",
-                f"repos/{repo}/issues/{issue_number}",
-                "--method",
-                "PATCH",
-                "-f",
-                f"title={issue_title}",
-                "-F",
-                f"body=@{issue_body_path}",
-            ]
-        )
+        _update_issue(repo, issue_number, issue_title, issue_body_path)
         return issue_number
 
+    return _create_issue(repo, issue_title, issue_body_path)
+
+
+def _write_issue_body(temp_dir: Path, issue_body: str) -> Path:
+    issue_path = temp_dir / "issue.md"
+    issue_path.write_text(issue_body, encoding="utf-8")
+    return issue_path
+
+
+def _update_issue(
+    repo: str,
+    issue_number: int,
+    issue_title: str,
+    issue_body_path: Path,
+) -> None:
+    _run_gh(
+        [
+            "api",
+            f"repos/{repo}/issues/{issue_number}",
+            "--method",
+            "PATCH",
+            "-f",
+            f"title={issue_title}",
+            "-F",
+            f"body=@{issue_body_path}",
+        ]
+    )
+
+
+def _create_issue(
+    repo: str,
+    issue_title: str,
+    issue_body_path: Path,
+) -> int:
     created = _run_gh_json(
         [
             "api",
@@ -128,7 +183,7 @@ def upsert_run_issue(
 
 
 def _find_run_issue_number(repo: str, run_marker: str) -> int | None:
-    marker = f"<!-- {run_marker} -->"
+    marker = _wrap_run_marker(run_marker)
     page = 1
 
     while True:
@@ -150,19 +205,29 @@ def _find_run_issue_number(repo: str, run_marker: str) -> int | None:
             return None
 
         for issue in issues:
-            if not isinstance(issue, dict) or "pull_request" in issue:
-                continue
-            body = str(issue.get("body", ""))
-            if marker not in body:
-                continue
-            issue_number = issue.get("number")
-            if isinstance(issue_number, int) and not isinstance(issue_number, bool):
+            issue_number = _match_issue_number(issue, marker)
+            if issue_number is not None:
                 return issue_number
-            raise PublishError("命中的 issue 缺少有效的 number 字段")
 
         if len(issues) < 100:
             return None
         page += 1
+
+
+def _match_issue_number(issue: object, marker: str) -> int | None:
+    if not isinstance(issue, dict) or "pull_request" in issue:
+        return None
+    body = str(issue.get("body", ""))
+    if marker not in body:
+        return None
+    issue_number = issue.get("number")
+    if isinstance(issue_number, int) and not isinstance(issue_number, bool):
+        return issue_number
+    raise PublishError("命中的 issue 缺少有效的 number 字段")
+
+
+def _wrap_run_marker(run_marker: str) -> str:
+    return f"<!-- {run_marker} -->"
 
 
 def _resolve_repo(repo: str | None, *, required: bool) -> str | None:
