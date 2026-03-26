@@ -4,4 +4,13 @@ defaults:
   max_seen_ids: 300
   enabled: true
 
+# 每个 feed 需要唯一 id，后续状态文件会按 id 保存 etag / seen_ids。
+# feeds:
+#   - id: github-blog
+#     title: GitHub Blog
+#     url: https://github.blog/feed/
+#     enabled: true
+#     timeout_seconds: 20
+#     max_entries_per_feed: 20
+#     max_seen_ids: 300
 feeds: []
