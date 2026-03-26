@@ -19,7 +19,12 @@ def load_state(path: Path) -> AppState:
         return AppState()
 
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw_text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise StateError(f"状态文件读取失败: {path}") from exc
+
+    try:
+        raw = json.loads(raw_text)
     except json.JSONDecodeError as exc:
         raise StateError(f"状态文件 JSON 解析失败: {path}") from exc
 
@@ -37,7 +42,10 @@ def save_state(path: Path, state: AppState) -> None:
         indent=2,
         sort_keys=False,
     )
-    _write_atomic_text(path, f"{payload}\n")
+    try:
+        _write_atomic_text(path, f"{payload}\n")
+    except OSError as exc:
+        raise StateError(f"状态文件写入失败: {path}") from exc
 
 
 def _write_atomic_text(path: Path, content: str) -> None:

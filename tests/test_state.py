@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from fluxa.models import AppState, FeedState
+from fluxa.models import AppState, FeedState, StateError
 from fluxa.state import load_state, save_state
 
 
@@ -39,12 +39,21 @@ class StatePersistenceTests(unittest.TestCase):
             state_path = Path(temp_dir) / "state.json"
 
             with patch("pathlib.Path.replace", side_effect=OSError("disk full")):
-                with self.assertRaises(OSError):
+                with self.assertRaises(StateError):
                     save_state(state_path, state)
 
             leftover_temp_files = list(Path(temp_dir).glob(".*.tmp"))
 
         self.assertEqual(leftover_temp_files, [])
+
+    def test_load_state_wraps_read_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_path = Path(temp_dir) / "state.json"
+            state_path.write_text("{}", encoding="utf-8")
+
+            with patch("pathlib.Path.read_text", side_effect=OSError("permission")):
+                with self.assertRaises(StateError):
+                    load_state(state_path)
 
 
 if __name__ == "__main__":

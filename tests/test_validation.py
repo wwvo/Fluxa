@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fluxa.config import load_config
 from fluxa.models import AppState, ConfigError, FeedSourceState, FeedState, StateError
@@ -103,6 +104,15 @@ class StrictStringValidationTests(unittest.TestCase):
 
             with self.assertRaises(ConfigError):
                 load_config(config_path)
+
+    def test_config_wraps_read_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "feeds.yml"
+            config_path.write_text("feeds: []\n", encoding="utf-8")
+
+            with patch("pathlib.Path.read_text", side_effect=OSError("permission")):
+                with self.assertRaises(ConfigError):
+                    load_config(config_path)
 
 
 if __name__ == "__main__":

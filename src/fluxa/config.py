@@ -21,7 +21,12 @@ def load_config(path: Path) -> AppConfig:
         raise ConfigError(f"配置文件不存在: {path}")
 
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        raw_text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ConfigError(f"配置文件读取失败: {path}") from exc
+
+    try:
+        raw = yaml.safe_load(raw_text)
     except yaml.YAMLError as exc:
         raise ConfigError(f"配置文件 YAML 解析失败: {path}") from exc
 
