@@ -162,8 +162,12 @@ def _read_int(
     minimum: int,
 ) -> int:
     value = payload.get(key, default)
-    if not isinstance(value, int):
+    if not _is_strict_int(value):
         raise ConfigError(f"{key} 必须是整数")
     if value < minimum:
         raise ConfigError(f"{key} 必须大于等于 {minimum}")
     return value
+
+
+def _is_strict_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)

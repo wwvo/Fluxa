@@ -111,7 +111,7 @@ class FeedSourceState:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "FeedSourceState":
         last_http_status = payload.get("last_http_status")
-        if last_http_status is not None and not isinstance(last_http_status, int):
+        if last_http_status is not None and not _is_strict_int(last_http_status):
             raise StateError("state.feed.source.last_http_status 必须是整数")
         return cls(
             etag=_coerce_optional_str(payload.get("etag")),
@@ -154,7 +154,7 @@ class FeedState:
             raise StateError("state.feed.seen_ids 必须是数组")
         seen_ids = [str(item) for item in seen_ids_raw if str(item).strip()]
         last_http_status = payload.get("last_http_status")
-        if last_http_status is not None and not isinstance(last_http_status, int):
+        if last_http_status is not None and not _is_strict_int(last_http_status):
             raise StateError("state.feed.last_http_status 必须是整数")
 
         sources_raw = payload.get("sources", {})
@@ -269,7 +269,7 @@ class AppState:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "AppState":
         schema_version = payload.get("schema_version", 1)
-        if not isinstance(schema_version, int) or schema_version < 1:
+        if not _is_strict_int(schema_version) or schema_version < 1:
             raise StateError("state.schema_version 必须是正整数")
         bootstrap_completed = payload.get("bootstrap_completed", False)
         if not isinstance(bootstrap_completed, bool):
@@ -358,3 +358,7 @@ def _coerce_optional_str(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _is_strict_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
