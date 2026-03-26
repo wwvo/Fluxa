@@ -1,0 +1,23 @@
+[project]
+name = "fluxa"
+version = "0.1.0"
+description = "Scheduled RSS digest publisher for Git repositories and GitHub Issues."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "feedparser>=6.0.11",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "python-dateutil>=2.9.0.post0",
+    "pyyaml>=6.0.2",
+]
+
+[project.scripts]
+fluxa = "fluxa.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true

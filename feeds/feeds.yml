@@ -1,0 +1,7 @@
+defaults:
+  timeout_seconds: 20
+  max_entries_per_feed: 20
+  max_seen_ids: 300
+  enabled: true
+
+feeds: []
