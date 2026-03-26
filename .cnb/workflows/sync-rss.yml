@@ -1,0 +1,90 @@
+.sync-rss: &sync-rss
+  - name: sync-rss
+    docker:
+      image: docker.cnb.cool/wwvo/build-env/python312-slim:latest
+    env:
+      CNB_CI: "true"
+      CNB_REPO: "wwvo/Fluxa"
+      FLUXA_PUBLISHER: "cnb"
+      STATE_BRANCH: "rss-state"
+      TZ: "Asia/Shanghai"
+    stages:
+      - name: install-python-deps
+        script: uv sync --frozen
+      - name: run-tests
+        script: uv run python -m unittest discover -s tests
+      - name: install-cnb-rs
+        script: |
+          set -eu
+          if command -v cnb-rs >/dev/null 2>&1; then
+            cnb-rs version
+            exit 0
+          fi
+          curl -fsSL https://raw.githubusercontent.com/wwvo/cnb-rs/main/scripts/install.sh | CNB_RS_INSTALL_SOURCE=github bash
+          cnb-rs version
+      - name: prepare-state-worktree
+        script: |
+          set -eu
+          STATE_ROOT=".cnb-tmp/state-worktree"
+          ORIGIN_URL="$(git remote get-url origin)"
+
+          git config --global --add safe.directory "$PWD"
+          rm -rf "$STATE_ROOT"
+          mkdir -p .cnb-tmp
+
+          if git ls-remote --exit-code --heads origin "$STATE_BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$STATE_BRANCH:$STATE_BRANCH"
+            git worktree add --force "$STATE_ROOT" "$STATE_BRANCH"
+          else
+            mkdir -p "$STATE_ROOT/state"
+            git init "$STATE_ROOT"
+            git -C "$STATE_ROOT" checkout -b "$STATE_BRANCH"
+            git -C "$STATE_ROOT" remote add origin "$ORIGIN_URL"
+            cat > "$STATE_ROOT/state/state.json" <<'JSON'
+            {
+              "schema_version": 1,
+              "bootstrap_completed": false,
+              "feeds": {}
+            }
+            JSON
+          fi
+
+          git config --global --add safe.directory "$(cd "$STATE_ROOT" && pwd)"
+      - name: run-fluxa
+        script: |
+          set -eu
+          SUMMARY_FILE=".cnb-tmp/fluxa-step-summary.md"
+          RUN_ID="${CNB_PIPELINE_ID:-${CNB_BUILD_ID:-${CI_PIPELINE_ID:-${CI_JOB_ID:-cnb-$(date +%Y%m%d%H%M%S)}}}}"
+
+          export GITHUB_STEP_SUMMARY="$SUMMARY_FILE"
+
+          uv run fluxa \
+            --publisher "$FLUXA_PUBLISHER" \
+            --repo "$CNB_REPO" \
+            --state-path .cnb-tmp/state-worktree/state/state.json \
+            --timezone "$TZ" \
+            --run-id "$RUN_ID"
+
+          if [ -f "$SUMMARY_FILE" ]; then
+            cat "$SUMMARY_FILE"
+          fi
+      - name: push-state-branch
+        script: |
+          set -eu
+          STATE_ROOT=".cnb-tmp/state-worktree"
+
+          git -C "$STATE_ROOT" config user.name "illegal_name"
+          git -C "$STATE_ROOT" config user.email "NSC0TbC7oYPediWNVyWWaC+illegal_name_cnb.by9cbmyhqda@noreply.cnb.cool"
+          git -C "$STATE_ROOT" add state/state.json
+
+          if [ -z "$(git -C "$STATE_ROOT" status --short -- state/state.json)" ]; then
+            echo "rss-state 无暂存变更，跳过提交"
+            exit 0
+          fi
+
+          git -C "$STATE_ROOT" commit -m "🔧 chore(state): 更新 RSS 状态"
+          git -C "$STATE_ROOT" push origin HEAD:"$STATE_BRANCH"
+
+main:
+  web_trigger_sync-rss: *sync-rss
+  "crontab: 0 */2 * * *": *sync-rss

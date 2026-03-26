@@ -1,0 +1,5 @@
+branch:
+  - buttons:
+      - name: 同步 RSS 并发布 CNB Issue
+        description: 拉取 feed、更新 rss-state 分支，并把本轮新增文章发布到 CNB 仓库 issue
+        event: web_trigger_sync-rss

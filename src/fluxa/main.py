@@ -29,7 +29,7 @@ class _RecoverySection:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="fluxa",
-        description="Scheduled RSS digest publisher for Git repositories and GitHub Issues.",
+        description="Scheduled RSS digest publisher for Git repositories and GitHub/CNB Issues.",
     )
     parser.add_argument(
         "--config",
@@ -47,9 +47,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Initialize feed state without publishing issue updates.",
     )
     parser.add_argument(
+        "--publisher",
+        default="github",
+        choices=("github", "cnb"),
+        help="Issue backend. 'github' uses gh, 'cnb' uses cnb-rs.",
+    )
+    parser.add_argument(
         "--repo",
         default=None,
-        help="GitHub repository in OWNER/REPO format. Defaults to GITHUB_REPOSITORY.",
+        help="Target repository in OWNER/REPO format.",
     )
     parser.add_argument(
         "--templates-dir",
@@ -64,12 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--run-id",
         default=None,
-        help="Unique run identifier used for issue idempotency. Defaults to GITHUB_RUN_ID.",
+        help="Unique run identifier used for issue idempotency.",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Render and execute the flow without saving state or publishing to GitHub.",
+        help="Render and execute the flow without saving state or publishing issue.",
     )
     return parser
 
@@ -107,6 +113,7 @@ def main() -> int:
             publish_result = publish_summary(
                 summary,
                 Path(args.templates_dir),
+                publisher=args.publisher,
                 repo=args.repo,
                 timezone_name=args.timezone,
                 run_id=args.run_id,
@@ -173,10 +180,11 @@ def _print_overview(
     elif summary.new_count == 0:
         print("本轮没有新文章，不会发布 issue。")
     elif dry_run:
-        print("当前为 dry-run 模式：已跳过 gh 发布，也未保存 state。")
+        print("当前为 dry-run 模式：已跳过 issue 发布，也未保存 state。")
     elif publish_result is not None:
+        publisher_label = _publisher_display_name(publish_result.publisher)
         print(
-            f"已发布到 {publish_result.repo} 的 issue #{publish_result.issue_number}。"
+            f"已发布到 {publish_result.repo} 的 {publisher_label} issue #{publish_result.issue_number}。"
         )
 
     if not dry_run and state_saved:
@@ -322,13 +330,15 @@ def _build_publish_result_line(
     dry_run: bool,
 ) -> str | None:
     if publish_result is not None:
+        publisher_label = _publisher_display_name(publish_result.publisher)
         if dry_run:
             if publish_result.repo:
-                return (
-                    f"- 发布结果：dry-run，已跳过向 `{publish_result.repo}` 写入 issue"
-                )
-            return "- 发布结果：dry-run，已跳过 GitHub issue 写入"
-        return f"- 发布结果：issue #{publish_result.issue_number} @ `{publish_result.repo}`"
+                return f"- 发布结果：dry-run，已跳过向 `{publish_result.repo}` 写入 {publisher_label} issue"
+            return f"- 发布结果：dry-run，已跳过 {publisher_label} issue 写入"
+        return (
+            f"- 发布结果：{publisher_label} issue "
+            f"#{publish_result.issue_number} @ `{publish_result.repo}`"
+        )
 
     if summary.new_count == 0 or summary.bootstrap_mode:
         return "- 发布结果：本轮无需发布 issue"
@@ -371,6 +381,10 @@ def _build_recovery_sections(summary: RunSummary) -> list[_RecoverySection]:
         )
 
     return sections
+
+
+def _publisher_display_name(publisher: str) -> str:
+    return "GitHub" if publisher == "github" else "CNB"
 
 
 if __name__ == "__main__":

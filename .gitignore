@@ -2,5 +2,6 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.cnb-tmp/
 state/*.json
 !state/.gitkeep

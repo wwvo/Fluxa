@@ -27,7 +27,7 @@ class StateError(FluxaError):
 
 
 class PublishError(FluxaError):
-    """GitHub 发布错误。"""
+    """Issue 发布错误。"""
 
 
 @dataclass(slots=True, frozen=True)

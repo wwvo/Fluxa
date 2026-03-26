@@ -13,7 +13,7 @@
 
 </div>
 
-`Fluxa` 的目标很明确：定时主动拉取一组 RSS / Atom feed，把本轮新增文章汇总成一篇 Markdown，然后发布到 GitHub Issue。它不依赖数据库，状态直接保存在仓库自己的 `rss-state` 分支里，适合“配置即仓库、状态也尽量 Git 化”的轻量部署方式。
+`Fluxa` 的目标很明确：定时主动拉取一组 RSS / Atom feed，把本轮新增文章汇总成一篇 Markdown，然后发布到 Issue。它不依赖数据库，状态直接保存在仓库自己的 `rss-state` 分支里，适合“配置即仓库、状态也尽量 Git 化”的轻量部署方式。
 
 ## 核心特性
 
@@ -25,8 +25,9 @@
 - 内建 RSSHub fallback 策略，主源失败后可自动切换备用实例。
 - 对 `406 / 415` 协商类错误会自动做一次“宽松请求头”重试。
 - 某个 feed 从失败恢复时，会临时放大抓取窗口，尽量补回停机期间漏掉的文章。
-- 通过 `gh api` 创建或更新 GitHub Issue；同一次 workflow 重跑会命中同一个 `run_id` 对应的 issue。
-- GitHub Actions 每 2 小时自动执行一次，代码与状态分支职责分离。
+- 支持 `github / cnb` 双发布后端：GitHub 使用 `gh`，CNB 使用 `cnb-rs`。
+- 同一次调度重跑会命中同一个 `run_id` 对应的 issue，避免重复创建。
+- 同时提供 GitHub Actions 与 CNB 云原生构建流水线，方便按仓库托管位置选择运行环境。
 
 ## 快速开始
 
@@ -48,18 +49,20 @@ uv run fluxa --help
 uv run fluxa --bootstrap-only
 ```
 
-这一步会读取 `feeds/feeds.yml` 中的 feed，并把当前看到的条目标记为已见，但不会发布 GitHub Issue。
+这一步会读取 `feeds/feeds.yml` 中的 feed，并把当前看到的条目标记为已见，但不会发布任何历史 issue。
 
 ### 4. 本地演练完整流程
 
 ```bash
 uv run fluxa --repo wwvo/Fluxa --run-id local-test --dry-run
+uv run fluxa --publisher cnb --repo wwvo/Fluxa --run-id local-test --dry-run
 ```
 
-`--dry-run` 会完整执行“加载配置 -> 拉取 feed -> 生成汇总 -> 渲染 issue”，但不会写入 GitHub，也不会保存状态文件。
+`--dry-run` 会完整执行“加载配置 -> 拉取 feed -> 生成汇总 -> 渲染 issue”，但不会真正写入 issue，也不会保存状态文件。
 
 > [!TIP]
-> 真正执行 GitHub 发布前，先确认本机 `gh auth status` 正常；在 GitHub Actions 中，工作流会直接使用 `github.token`。
+> 真正执行发布前，先确认本机对应的 CLI 已登录：
+> GitHub 发布用 `gh auth status`，CNB 发布用 `cnb-rs auth status` 或本地 `~/.cnb/config.toml` 登录态。
 
 ## 使用方法
 
@@ -69,6 +72,7 @@ uv run fluxa --repo wwvo/Fluxa --run-id local-test --dry-run
 uv run fluxa --bootstrap-only
 uv run fluxa --state-path state/state.json --repo wwvo/Fluxa --run-id local-test
 uv run fluxa --state-path state/state.json --repo wwvo/Fluxa --run-id local-test --dry-run
+uv run fluxa --publisher cnb --state-path state/state.json --repo wwvo/Fluxa --run-id local-test
 ```
 
 ### 主要参数
@@ -78,11 +82,12 @@ uv run fluxa --state-path state/state.json --repo wwvo/Fluxa --run-id local-test
 | `--config` | `feeds/feeds.yml` | feed 配置文件路径 |
 | `--state-path` | `state/state.json` | 状态文件路径 |
 | `--bootstrap-only` | `false` | 仅初始化状态，不发布 issue |
-| `--repo` | `GITHUB_REPOSITORY` | GitHub 仓库，格式为 `OWNER/REPO` |
+| `--publisher` | `github` | 发布后端，`github` 使用 `gh`，`cnb` 使用 `cnb-rs` |
+| `--repo` | 环境变量推导 | issue 目标仓库，格式为 `OWNER/REPO` |
 | `--templates-dir` | `templates` | Markdown 模板目录 |
 | `--timezone` | `Asia/Shanghai` | issue 标题日期和展示时间使用的时区 |
-| `--run-id` | `GITHUB_RUN_ID` | 本轮执行的幂等标识 |
-| `--dry-run` | `false` | 演练模式，不保存状态也不发布到 GitHub |
+| `--run-id` | 环境变量推导 | 本轮执行的幂等标识 |
+| `--dry-run` | `false` | 演练模式，不保存状态也不发布 issue |
 
 ### 一次完整运行的主链路
 
@@ -91,7 +96,7 @@ uv run fluxa --state-path state/state.json --repo wwvo/Fluxa --run-id local-test
 3. `src/fluxa/runner.py` 决定是否进入 bootstrap，并触发轮询。
 4. `src/fluxa/fetch.py` 并发抓取 feed，处理条件请求、fallback、retry 和差量计算。
 5. `src/fluxa/render.py` 使用 Jinja2 将本轮结果渲染成 Markdown。
-6. `src/fluxa/publish.py` 通过 `gh api` 创建或更新 GitHub Issue。
+6. `src/fluxa/publish.py` 根据发布后端调用 `gh` 或 `cnb-rs` 创建 / 更新 issue。
 7. `src/fluxa/state.py` 保存最新状态，供下一轮继续增量抓取。
 
 ## 技术栈
@@ -105,6 +110,8 @@ uv run fluxa --state-path state/state.json --repo wwvo/Fluxa --run-id local-test
 - `pyyaml`
 - GitHub Actions
 - GitHub CLI `gh`
+- CNB 云原生构建流水线
+- CNB CLI `cnb-rs`
 
 ## 架构概览
 
@@ -118,7 +125,7 @@ run_cycle()
   -> normalize_entries()
   -> compute_entry_delta()
   -> render_run_issue()
-  -> gh api issues
+  -> gh / cnb-rs issue
   -> save_state()
 ```
 
@@ -127,12 +134,16 @@ run_cycle()
 - 配置层：把 YAML 配置转成强类型对象。
 - 抓取层：负责 HTTP、条件请求、并发、fallback、重试与去重。
 - 展示层：把 `RunSummary` 转成 issue 模板需要的数据。
-- 发布层：通过 `gh` 与 GitHub Issue API 交互。
+- 发布层：根据后端选择 `gh` 或 `cnb-rs` 写入 issue。
 
 ## 项目结构
 
 ```text
 Fluxa/
+├─ .cnb.yml
+├─ .cnb/
+│  ├─ web_trigger.yml
+│  └─ workflows/sync-rss.yml
 ├─ .github/workflows/rss-digest.yml
 ├─ feeds/feeds.yml
 ├─ state/state.json
@@ -160,7 +171,7 @@ Fluxa/
 | `templates/run_issue.md.j2` | 汇总 issue 的 Markdown 模板 |
 | `src/fluxa/main.py` | CLI 入口与总控流程 |
 | `src/fluxa/fetch.py` | RSS 抓取、fallback、重试、状态更新 |
-| `src/fluxa/publish.py` | `gh api` 发布与 issue 幂等更新 |
+| `src/fluxa/publish.py` | `gh / cnb-rs` 发布与 issue 幂等更新 |
 | `src/fluxa/rsshub.py` | RSSHub 公共实例池与自动 fallback 规则 |
 | `tests/` | 单元测试 |
 
@@ -387,6 +398,43 @@ feeds:
 - workflow 拥有 `contents: write`
 - workflow 拥有 `issues: write`
 
+## CNB 云原生构建流水线
+
+项目现在也内置了 CNB 配置：
+
+- [`.cnb.yml`](./.cnb.yml)
+- [`.cnb/web_trigger.yml`](./.cnb/web_trigger.yml)
+- [`.cnb/workflows/sync-rss.yml`](./.cnb/workflows/sync-rss.yml)
+
+### 默认行为
+
+- 触发方式：手动按钮 + 每 2 小时定时执行
+- 发布后端：`cnb`
+- issue 目标仓库：`wwvo/Fluxa`
+- 状态分支：`rss-state`
+- 时区：`Asia/Shanghai`
+
+### 工作流步骤
+
+1. `uv sync --frozen`
+2. 运行单元测试
+3. 安装或确认 `cnb-rs`
+4. 准备 `rss-state` 工作区；若分支不存在则自动初始化
+5. 执行 `uv run fluxa --publisher cnb --repo wwvo/Fluxa`
+6. 将新的 `state/state.json` 提交并推送到 CNB 仓库的 `rss-state` 分支
+
+### 发布到 Issue 的方式
+
+CNB 流水线不会再调用 GitHub API，而是直接使用 `cnb-rs` 写入当前 CNB 仓库的 issue：
+
+- issue 标题格式：`Fluxa Digest | YYYY-MM-DD | run <run_id>`
+- issue 正文同样保留 `<!-- fluxa-run:<run_id> -->` 标记
+- 同一个 `run_id` 的重跑会尝试更新原 CNB issue，而不是重复创建
+
+> [!WARNING]
+> 不建议同时开启 GitHub Actions 定时任务和 CNB 定时任务。
+> 因为两边会各自维护自己的 `rss-state` 分支，并且分别往 GitHub / CNB issue 发结果，容易造成重复抓取、状态漂移和双份通知。
+
 ## 开发与测试
 
 ### 本地开发
@@ -394,6 +442,7 @@ feeds:
 ```bash
 uv sync
 uv run fluxa --help
+cnb-rs version
 ```
 
 ### 运行测试
@@ -407,6 +456,7 @@ uv run python -m unittest discover -s tests
 ```bash
 uv run fluxa --bootstrap-only
 uv run fluxa --repo wwvo/Fluxa --run-id debug-001 --dry-run
+uv run fluxa --publisher cnb --repo wwvo/Fluxa --run-id debug-cnb-001 --dry-run
 ```
 
 `main.py` 还会把本轮概览、恢复成功 feed 与失败 feed 输出到控制台；在 GitHub Actions 中，如果存在 `GITHUB_STEP_SUMMARY`，也会同步写入运行摘要。
@@ -444,6 +494,10 @@ uv run fluxa --repo wwvo/Fluxa --run-id debug-001 --dry-run
 - 上游站点反爬或临时不可访问
 
 那么本轮仍会失败。此时可以从 Actions 日志里的失败汇总定位具体 feed。
+
+### CNB 流水线为什么直接发到 CNB issue？
+
+因为 CNB 仓库本身就可以承接通知、归档和邮件提醒，直接在当前仓库落 issue 更符合“代码、流水线和通知都留在同一平台”的使用方式。
 
 ### 为什么 issue 而不是 issue comment？
 

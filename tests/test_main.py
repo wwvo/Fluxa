@@ -102,6 +102,7 @@ class StepSummaryTests(unittest.TestCase):
     def test_dry_run_summary_does_not_render_issue_none(self) -> None:
         summary = _build_summary()
         publish_result = PublishResult(
+            publisher="github",
             repo=None,
             issue_number=None,
             issue_title="Fluxa Digest | 2026-03-27 | run dry-run-1",
