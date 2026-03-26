@@ -18,6 +18,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fluxa.models import PublishError, RunSummary
 from fluxa.render import render_run_issue
 
+_GH_TIMEOUT_SECONDS = 60
+
 
 @dataclass(slots=True, frozen=True)
 class PublishResult:
@@ -191,13 +193,19 @@ def _load_timezone(timezone_name: str) -> ZoneInfo:
 def _run_gh(args: list[str]) -> str:
     env = os.environ.copy()
     env["GH_PAGER"] = "cat"
-    completed = subprocess.run(
-        ["gh", *args],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
+    try:
+        completed = subprocess.run(
+            ["gh", *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=_GH_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise PublishError(
+            f"gh 命令执行超时（>{_GH_TIMEOUT_SECONDS} 秒）: {' '.join(args)}"
+        ) from exc
     if completed.returncode != 0:
         error_message = completed.stderr.strip() or completed.stdout.strip()
         raise PublishError(f"gh 命令执行失败: {' '.join(args)}\n{error_message}")

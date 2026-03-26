@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from fluxa.models import AppConfig, FeedDefaults, RunSummary
-from fluxa.publish import publish_summary, upsert_run_issue
+from fluxa.models import AppConfig, FeedDefaults, PublishError, RunSummary
+from fluxa.publish import _run_gh, publish_summary, upsert_run_issue
 
 
 def _build_summary() -> RunSummary:
@@ -96,6 +97,16 @@ class PublishIssueLookupTests(unittest.TestCase):
 
         self.assertIsNone(result.repo)
         self.assertIsNone(result.issue_number)
+
+    def test_run_gh_raises_publish_error_on_timeout(self) -> None:
+        with patch(
+            "fluxa.publish.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(
+                cmd=["gh", "issue", "list"], timeout=60
+            ),
+        ):
+            with self.assertRaises(PublishError):
+                _run_gh(["issue", "list"])
 
 
 if __name__ == "__main__":
