@@ -4,15 +4,7 @@ defaults:
   max_seen_ids: 300
   enabled: true
 
-# 每个 feed 需要唯一 id，后续状态文件会按 id 保存 etag / seen_ids。
-# feeds:
-#   - id: github-blog
-#     title: GitHub Blog
-#     url: https://github.blog/feed/
-#     enabled: true
-#     timeout_seconds: 20
-#     max_entries_per_feed: 20
-#     max_seen_ids: 300
+# 每个 feed 需要唯一 id，状态会按 feed id 和来源 URL 分别保存缓存信息。
 feeds:
   - id: anthony-fu
     title: Anthony Fu
@@ -50,66 +42,189 @@ feeds:
   - id: openai-news
     title: OpenAI News
     url: https://openai.com/news/rss.xml
+
+  # RSSHub feeds: 主源优先切到实测更稳定的公共实例，并保留多实例回退。
   - id: 36kr-hot
     title: 36Kr 热榜
-    url: https://rsshub.app/36kr/hot-list
+    url: https://rsshub-balancer.virworks.moe/36kr/hot-list
+    fallback_urls:
+      - https://rsshub.ktachibana.party/36kr/hot-list
+      - https://hub.slarker.me/36kr/hot-list
+      - https://rsshub.rssforever.com/36kr/hot-list
+      - https://rsshub.isrss.com/36kr/hot-list
+      - https://rsshub.umzzz.com/36kr/hot-list
   - id: baoyu-blog
     title: 宝玉的博客
-    url: https://rsshub.app/baoyu/blog
+    url: https://rsshub-balancer.virworks.moe/baoyu/blog
+    fallback_urls:
+      - https://rsshub.ktachibana.party/baoyu/blog
+      - https://hub.slarker.me/baoyu/blog
+      - https://rsshub.rssforever.com/baoyu/blog
+      - https://rsshub.isrss.com/baoyu/blog
+      - https://rsshub.umzzz.com/baoyu/blog
   - id: bestofjs-monthly
     title: Best of JS Monthly Rankings
-    url: https://rsshub.app/bestofjs/rankings/monthly
+    url: https://rsshub-balancer.virworks.moe/bestofjs/rankings/monthly
+    fallback_urls:
+      - https://rsshub.ktachibana.party/bestofjs/rankings/monthly
+      - https://hub.slarker.me/bestofjs/rankings/monthly
+      - https://rsshub.rssforever.com/bestofjs/rankings/monthly
+      - https://rsshub.isrss.com/bestofjs/rankings/monthly
+      - https://rsshub.umzzz.com/bestofjs/rankings/monthly
   - id: claude-blog
     title: Claude Blog
-    url: https://rsshub.app/claude/blog
+    url: https://rsshub.ktachibana.party/claude/blog
+    fallback_urls:
+      - https://hub.slarker.me/claude/blog
+      - https://rsshub-balancer.virworks.moe/claude/blog
+      - https://rsshub.rssforever.com/claude/blog
+      - https://rsshub.isrss.com/claude/blog
+      - https://rsshub.umzzz.com/claude/blog
   - id: css-tricks-popular
     title: CSS-Tricks Popular
-    url: https://rsshub.app/css-tricks/popular
+    url: https://rsshub-balancer.virworks.moe/css-tricks/popular
+    fallback_urls:
+      - https://rsshub.ktachibana.party/css-tricks/popular
+      - https://hub.slarker.me/css-tricks/popular
+      - https://rsshub.rssforever.com/css-tricks/popular
+      - https://rsshub.isrss.com/css-tricks/popular
+      - https://rsshub.umzzz.com/css-tricks/popular
   - id: cursor-blog
     title: Cursor Blog
-    url: https://rsshub.app/cursor/blog
+    url: https://rsshub-balancer.virworks.moe/cursor/blog
+    fallback_urls:
+      - https://rsshub.ktachibana.party/cursor/blog
+      - https://hub.slarker.me/cursor/blog
+      - https://rsshub.rssforever.com/cursor/blog
+      - https://rsshub.isrss.com/cursor/blog
+      - https://rsshub.umzzz.com/cursor/blog
   - id: cursor-changelog
     title: Cursor Changelog
-    url: https://rsshub.app/cursor/changelog
+    url: https://rsshub-balancer.virworks.moe/cursor/changelog
+    fallback_urls:
+      - https://rsshub.ktachibana.party/cursor/changelog
+      - https://hub.slarker.me/cursor/changelog
+      - https://rsshub.rssforever.com/cursor/changelog
+      - https://rsshub.isrss.com/cursor/changelog
+      - https://rsshub.umzzz.com/cursor/changelog
   - id: devto-guides
     title: DEV.to Trending Guides
-    url: https://rsshub.app/dev.to/guides
+    url: https://rsshub-balancer.virworks.moe/dev.to/guides
+    fallback_urls:
+      - https://rsshub.ktachibana.party/dev.to/guides
+      - https://hub.slarker.me/dev.to/guides
+      - https://rsshub.rssforever.com/dev.to/guides
+      - https://rsshub.isrss.com/dev.to/guides
+      - https://rsshub.umzzz.com/dev.to/guides
   - id: devto-top-week
     title: dev.to top (week)
-    url: https://rsshub.app/dev.to/top/week
+    url: https://rsshub-balancer.virworks.moe/dev.to/top/week
+    fallback_urls:
+      - https://rsshub.ktachibana.party/dev.to/top/week
+      - https://hub.slarker.me/dev.to/top/week
+      - https://rsshub.rssforever.com/dev.to/top/week
+      - https://rsshub.isrss.com/dev.to/top/week
+      - https://rsshub.umzzz.com/dev.to/top/week
   - id: foreverblog
     title: 十年之约
-    url: https://rsshub.app/foreverblog/feeds
+    url: https://rsshub-balancer.virworks.moe/foreverblog/feeds
+    fallback_urls:
+      - https://rsshub.ktachibana.party/foreverblog/feeds
+      - https://hub.slarker.me/foreverblog/feeds
+      - https://rsshub.rssforever.com/foreverblog/feeds
+      - https://rsshub.isrss.com/foreverblog/feeds
+      - https://rsshub.umzzz.com/foreverblog/feeds
   - id: ruanyifeng-weekly-issues
     title: 阮一峰周刊 Issues
-    url: https://rsshub.app/github/issue/ruanyf/weekly
+    url: https://rsshub-balancer.virworks.moe/github/issue/ruanyf/weekly
+    fallback_urls:
+      - https://rsshub.ktachibana.party/github/issue/ruanyf/weekly
+      - https://hub.slarker.me/github/issue/ruanyf/weekly
+      - https://rsshub.rssforever.com/github/issue/ruanyf/weekly
+      - https://rsshub.isrss.com/github/issue/ruanyf/weekly
+      - https://rsshub.umzzz.com/github/issue/ruanyf/weekly
   - id: github-trending-daily
     title: GitHub Trending 日榜
-    url: https://rsshub.app/github/trending/daily/any
+    url: https://rsshub.rssforever.com/github/trending/daily/any
+    fallback_urls:
+      - https://rsshub.ktachibana.party/github/trending/daily/any
+      - https://rsshub-balancer.virworks.moe/github/trending/daily/any
+      - https://hub.slarker.me/github/trending/daily/any
+      - https://rsshub.isrss.com/github/trending/daily/any
+      - https://rsshub.umzzz.com/github/trending/daily/any
   - id: github-trending-weekly
     title: GitHub Trending 周榜
-    url: https://rsshub.app/github/trending/weekly/any
+    url: https://rsshub.rssforever.com/github/trending/weekly/any
+    fallback_urls:
+      - https://rsshub.ktachibana.party/github/trending/weekly/any
+      - https://rsshub-balancer.virworks.moe/github/trending/weekly/any
+      - https://hub.slarker.me/github/trending/weekly/any
+      - https://rsshub.isrss.com/github/trending/weekly/any
+      - https://rsshub.umzzz.com/github/trending/weekly/any
   - id: hellogithub-articles
     title: HelloGitHub 最近文章
-    url: https://rsshub.app/hellogithub/article
+    url: https://rsshub-balancer.virworks.moe/hellogithub/article
+    fallback_urls:
+      - https://rsshub.ktachibana.party/hellogithub/article
+      - https://hub.slarker.me/hellogithub/article
+      - https://rsshub.rssforever.com/hellogithub/article
+      - https://rsshub.isrss.com/hellogithub/article
+      - https://rsshub.umzzz.com/hellogithub/article
   - id: infoq-recommend
     title: InfoQ 推荐
-    url: https://rsshub.app/infoq/recommend
+    url: https://rsshub-balancer.virworks.moe/infoq/recommend
+    fallback_urls:
+      - https://rsshub.ktachibana.party/infoq/recommend
+      - https://hub.slarker.me/infoq/recommend
+      - https://rsshub.rssforever.com/infoq/recommend
+      - https://rsshub.isrss.com/infoq/recommend
+      - https://rsshub.umzzz.com/infoq/recommend
   - id: ithome-ranking-24h
     title: IT之家 24 小时热榜
-    url: https://rsshub.app/ithome/ranking/24h
+    url: https://rsshub-balancer.virworks.moe/ithome/ranking/24h
+    fallback_urls:
+      - https://rsshub.ktachibana.party/ithome/ranking/24h
+      - https://hub.slarker.me/ithome/ranking/24h
+      - https://rsshub.rssforever.com/ithome/ranking/24h
+      - https://rsshub.isrss.com/ithome/ranking/24h
+      - https://rsshub.umzzz.com/ithome/ranking/24h
   - id: kiro-blog
     title: Kiro Blog
-    url: https://rsshub.app/kiro/blog
+    url: https://rsshub-balancer.virworks.moe/kiro/blog
+    fallback_urls:
+      - https://rsshub.ktachibana.party/kiro/blog
+      - https://hub.slarker.me/kiro/blog
+      - https://rsshub.rssforever.com/kiro/blog
+      - https://rsshub.isrss.com/kiro/blog
+      - https://rsshub.umzzz.com/kiro/blog
   - id: qwen-blog-zh
     title: Qwen Blog
-    url: https://rsshub.app/qwenlm/blog/zh
+    url: https://rsshub-balancer.virworks.moe/qwenlm/blog/zh
+    fallback_urls:
+      - https://rsshub.ktachibana.party/qwenlm/blog/zh
+      - https://hub.slarker.me/qwenlm/blog/zh
+      - https://rsshub.rssforever.com/qwenlm/blog/zh
+      - https://rsshub.isrss.com/qwenlm/blog/zh
+      - https://rsshub.umzzz.com/qwenlm/blog/zh
   - id: readhub-daily
     title: Readhub 每日早报
-    url: https://rsshub.app/readhub/daily
+    url: https://rsshub-balancer.virworks.moe/readhub/daily
+    fallback_urls:
+      - https://rsshub.ktachibana.party/readhub/daily
+      - https://hub.slarker.me/readhub/daily
+      - https://rsshub.rssforever.com/readhub/daily
+      - https://rsshub.isrss.com/readhub/daily
+      - https://rsshub.umzzz.com/readhub/daily
   - id: sspai-index
     title: 少数派
-    url: https://rsshub.app/sspai/index
+    url: https://rsshub-balancer.virworks.moe/sspai/index
+    fallback_urls:
+      - https://rsshub.ktachibana.party/sspai/index
+      - https://hub.slarker.me/sspai/index
+      - https://rsshub.rssforever.com/sspai/index
+      - https://rsshub.isrss.com/sspai/index
+      - https://rsshub.umzzz.com/sspai/index
+
   - id: rustcc
     title: Rust.cc
     url: https://rustcc.cn/rss
