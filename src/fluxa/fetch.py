@@ -70,7 +70,9 @@ def poll_feeds(
             futures: list[tuple[str, Future[FeedPollResult]]] = []
             for feed in feeds:
                 previous_state = state_by_feed.get(feed.id, FeedState())
-                feed_bootstrap = bootstrap_mode or previous_state.last_success_at is None
+                feed_bootstrap = (
+                    bootstrap_mode or previous_state.last_success_at is None
+                )
                 future = executor.submit(
                     poll_feed,
                     client,
@@ -103,7 +105,7 @@ def poll_feed(
     source_states = _clone_source_states(feed_state)
     attempts: list[FeedAttemptResult] = []
 
-    for source_url in feed.source_urls:
+    for source_url in _resolve_source_urls(feed, feed_state):
         source_state = source_states.get(source_url)
         if source_state is None:
             source_state = _clone_source_state(
@@ -330,6 +332,29 @@ def _build_host_limiters(
             host = _extract_host(source_url)
             host_limiters.setdefault(host, BoundedSemaphore(_MAX_PER_HOST))
     return host_limiters
+
+
+def _resolve_source_urls(
+    feed: FeedConfig,
+    feed_state: FeedState,
+) -> tuple[str, ...]:
+    ordered_urls: list[str] = []
+    seen_urls: set[str] = set()
+
+    if (
+        feed_state.last_success_source
+        and feed_state.last_success_source in feed.source_urls
+    ):
+        ordered_urls.append(feed_state.last_success_source)
+        seen_urls.add(feed_state.last_success_source)
+
+    for source_url in feed.source_urls:
+        if source_url in seen_urls:
+            continue
+        seen_urls.add(source_url)
+        ordered_urls.append(source_url)
+
+    return tuple(ordered_urls)
 
 
 def _build_conditional_headers(source_state: FeedSourceState) -> dict[str, str]:

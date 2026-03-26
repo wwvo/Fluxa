@@ -13,33 +13,6 @@ _RSSHUB_INSTANCE_BASES = (
     "https://rsshub.umzzz.com",
 )
 
-_RSSHUB_ROUTE_INSTANCE_BASES = {
-    "claude/blog": (
-        "https://rsshub.ktachibana.party",
-        "https://hub.slarker.me",
-        "https://rsshub-balancer.virworks.moe",
-        "https://rsshub.rssforever.com",
-        "https://rsshub.isrss.com",
-        "https://rsshub.umzzz.com",
-    ),
-    "github/trending/daily/any": (
-        "https://rsshub.rssforever.com",
-        "https://rsshub.ktachibana.party",
-        "https://rsshub-balancer.virworks.moe",
-        "https://hub.slarker.me",
-        "https://rsshub.isrss.com",
-        "https://rsshub.umzzz.com",
-    ),
-    "github/trending/weekly/any": (
-        "https://rsshub.rssforever.com",
-        "https://rsshub.ktachibana.party",
-        "https://rsshub-balancer.virworks.moe",
-        "https://hub.slarker.me",
-        "https://rsshub.isrss.com",
-        "https://rsshub.umzzz.com",
-    ),
-}
-
 _RSSHUB_HOSTS = frozenset(
     {
         "rsshub.app",
@@ -61,12 +34,9 @@ def resolve_fallback_urls(
     if split_result is None:
         return ()
 
-    instance_bases = _RSSHUB_ROUTE_INSTANCE_BASES.get(
-        _route_key(split_result),
-        _RSSHUB_INSTANCE_BASES,
-    )
     generated_urls = [
-        _join_base_and_route(base_url, split_result) for base_url in instance_bases
+        _join_base_and_route(base_url, split_result)
+        for base_url in _RSSHUB_INSTANCE_BASES
     ]
     return _dedupe_urls(generated_urls, exclude={url})
 
@@ -80,10 +50,6 @@ def _parse_managed_rsshub_url(url: str) -> SplitResult | None:
     if not split_result.path or split_result.path == "/":
         return None
     return split_result
-
-
-def _route_key(split_result: SplitResult) -> str:
-    return split_result.path.strip("/")
 
 
 def _join_base_and_route(base_url: str, split_result: SplitResult) -> str:
