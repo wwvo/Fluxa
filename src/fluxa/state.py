@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 
 from fluxa.models import AppState, StateError
@@ -35,4 +37,23 @@ def save_state(path: Path, state: AppState) -> None:
         indent=2,
         sort_keys=False,
     )
-    path.write_text(f"{payload}\n", encoding="utf-8")
+    _write_atomic_text(path, f"{payload}\n")
+
+
+def _write_atomic_text(path: Path, content: str) -> None:
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+        text=True,
+    )
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as temp_file:
+            temp_file.write(content)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        temp_path.replace(path)
+    except OSError:
+        temp_path.unlink(missing_ok=True)
+        raise
