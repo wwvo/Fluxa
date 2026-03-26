@@ -79,7 +79,7 @@ def poll_feeds(
                     bootstrap_mode or previous_state.last_success_at is None
                 )
                 future = executor.submit(
-                    poll_feed,
+                    _poll_feed_safely,
                     client,
                     feed,
                     previous_state,
@@ -94,6 +94,26 @@ def poll_feeds(
                 results.append(result)
 
     return results
+
+
+def _poll_feed_safely(
+    client: httpx.Client,
+    feed: FeedConfig,
+    feed_state: FeedState,
+    *,
+    bootstrap_mode: bool,
+    host_limiters: dict[str, BoundedSemaphore],
+) -> FeedPollResult:
+    try:
+        return poll_feed(
+            client,
+            feed,
+            feed_state,
+            bootstrap_mode=bootstrap_mode,
+            host_limiters=host_limiters,
+        )
+    except Exception as exc:
+        return _build_unexpected_feed_error_result(feed, feed_state, exc)
 
 
 def poll_feed(
@@ -437,6 +457,37 @@ def _build_source_error_result(
     )
 
 
+def _build_unexpected_feed_error_result(
+    feed: FeedConfig,
+    feed_state: FeedState,
+    exc: Exception,
+) -> FeedPollResult:
+    checked_at = _utcnow_iso()
+    error_text = _format_unexpected_feed_error(exc)
+    source_states = _clone_source_states(feed_state)
+    next_state = _build_error_state(
+        feed,
+        feed_state,
+        source_states,
+        checked_at=checked_at,
+        http_status=None,
+        error=error_text,
+    )
+    return FeedPollResult(
+        feed=feed,
+        feed_title=feed.title or feed.id,
+        checked_at=checked_at,
+        status="error",
+        http_status=None,
+        source_url=None,
+        entries=[],
+        new_entries=[],
+        next_state=next_state,
+        attempts=[],
+        error=error_text,
+    )
+
+
 def _build_success_state(
     feed: FeedConfig,
     previous_state: FeedState,
@@ -547,6 +598,11 @@ def _extract_host(source_url: str) -> str:
 def _format_parse_error(exc: Exception) -> str:
     detail = str(exc).strip() or exc.__class__.__name__
     return f"解析或标准化 feed 失败: {detail}"
+
+
+def _format_unexpected_feed_error(exc: Exception) -> str:
+    detail = str(exc).strip() or exc.__class__.__name__
+    return f"轮询 feed 失败: {detail}"
 
 
 def _utcnow_iso() -> str:

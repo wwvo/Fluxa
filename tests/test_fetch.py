@@ -7,7 +7,7 @@ from unittest.mock import patch
 import httpx
 
 from fluxa.fetch import poll_feed, poll_feeds
-from fluxa.models import FeedConfig, FeedState
+from fluxa.models import FeedConfig, FeedPollResult, FeedState
 
 
 def _build_feed(feed_id: str, url: str) -> FeedConfig:
@@ -114,6 +114,61 @@ class FetchIsolationTests(unittest.TestCase):
         self.assertEqual([result.feed.id for result in results], ["broken", "healthy"])
         self.assertEqual(results[0].status, "error")
         self.assertEqual(results[1].status, "ok")
+
+    def test_poll_feeds_keeps_other_feeds_running_after_worker_exception(self) -> None:
+        broken_feed = _build_feed("broken", "https://example.com/broken.xml")
+        healthy_feed = _build_feed("healthy", "https://example.com/healthy.xml")
+        state_by_feed = {
+            broken_feed.id: FeedState(last_success_at="2026-03-26T00:00:00+00:00"),
+            healthy_feed.id: FeedState(),
+        }
+
+        def fake_poll_feed(
+            client: httpx.Client,
+            feed: FeedConfig,
+            feed_state: FeedState,
+            *,
+            bootstrap_mode: bool,
+            host_limiters: dict[str, object],
+        ) -> FeedPollResult:
+            del client, bootstrap_mode, host_limiters
+            if feed.id == broken_feed.id:
+                raise RuntimeError("worker crash")
+            return FeedPollResult(
+                feed=feed,
+                feed_title=feed.title or feed.id,
+                checked_at="2026-03-27T00:00:00+00:00",
+                status="ok",
+                http_status=200,
+                source_url=feed.url,
+                entries=[],
+                new_entries=[],
+                next_state=FeedState(
+                    last_success_at="2026-03-27T00:00:00+00:00",
+                    last_success_source=feed.url,
+                ),
+            )
+
+        with patch("fluxa.fetch.poll_feed", side_effect=fake_poll_feed):
+            results = poll_feeds(
+                [broken_feed, healthy_feed],
+                state_by_feed,
+                bootstrap_mode=False,
+            )
+
+        self.assertEqual([result.feed.id for result in results], ["broken", "healthy"])
+        self.assertEqual(results[0].status, "error")
+        self.assertIn("轮询 feed 失败", results[0].error or "")
+        self.assertIn("worker crash", results[0].error or "")
+        self.assertEqual(
+            results[0].next_state.last_success_at, "2026-03-26T00:00:00+00:00"
+        )
+        self.assertEqual(results[1].status, "ok")
+        self.assertEqual(state_by_feed["broken"].last_error, results[0].error)
+        self.assertEqual(
+            state_by_feed["healthy"].last_success_source,
+            healthy_feed.url,
+        )
 
 
 if __name__ == "__main__":
