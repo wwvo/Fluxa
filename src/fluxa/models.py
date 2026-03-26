@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,25 @@ class ConfigError(FluxaError):
 
 class StateError(FluxaError):
     """状态文件错误。"""
+
+
+@dataclass(slots=True, frozen=True)
+class NormalizedEntry:
+    """统一后的 RSS 条目。"""
+
+    feed_id: str
+    feed_title: str
+    entry_id: str
+    title: str
+    url: str | None
+    published_at: datetime | None
+    summary: str | None
+
+    @property
+    def published_at_iso(self) -> str | None:
+        if self.published_at is None:
+            return None
+        return self.published_at.isoformat()
 
 
 @dataclass(slots=True, frozen=True)
@@ -99,6 +119,21 @@ class FeedState:
 
 
 @dataclass(slots=True)
+class FeedPollResult:
+    """单个 Feed 的轮询结果。"""
+
+    feed: FeedConfig
+    feed_title: str
+    checked_at: str
+    status: str
+    http_status: int | None
+    entries: list[NormalizedEntry]
+    new_entries: list[NormalizedEntry]
+    next_state: FeedState
+    error: str | None = None
+
+
+@dataclass(slots=True)
 class AppState:
     """应用整体状态。"""
 
@@ -147,6 +182,35 @@ class AppState:
                 for feed_id, feed_state in sorted(self.feeds.items())
             },
         }
+
+
+@dataclass(slots=True)
+class RunSummary:
+    """一次完整轮询的汇总结果。"""
+
+    config: AppConfig
+    bootstrap_mode: bool
+    results: list[FeedPollResult]
+
+    @property
+    def checked_count(self) -> int:
+        return len(self.results)
+
+    @property
+    def error_count(self) -> int:
+        return sum(1 for result in self.results if result.status == "error")
+
+    @property
+    def not_modified_count(self) -> int:
+        return sum(1 for result in self.results if result.status == "not-modified")
+
+    @property
+    def new_entries(self) -> list[NormalizedEntry]:
+        return [entry for result in self.results for entry in result.new_entries]
+
+    @property
+    def new_count(self) -> int:
+        return len(self.new_entries)
 
 
 def _coerce_optional_str(value: Any) -> str | None:

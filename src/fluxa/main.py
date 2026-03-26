@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fluxa.config import load_config
 from fluxa.models import FluxaError
+from fluxa.runner import run_cycle
 from fluxa.state import load_state, save_state
 
 
@@ -43,7 +44,11 @@ def main() -> int:
     except FluxaError as exc:
         parser.exit(status=1, message=f"错误: {exc}\n")
 
-    state.ensure_feeds([feed.id for feed in config.feeds])
+    summary = run_cycle(
+        config,
+        state,
+        force_bootstrap=args.bootstrap_only,
+    )
     save_state(Path(args.state_path), state)
 
     enabled_count = len(config.enabled_feeds)
@@ -52,10 +57,12 @@ def main() -> int:
         f"Fluxa 已加载 {total_count} 个 feeds（启用 {enabled_count} 个），"
         f"状态文件已同步到 {args.state_path}"
     )
-    if args.bootstrap_only:
-        print("当前为 bootstrap-only 模式：本次仅初始化配置与状态骨架。")
-    elif not state.bootstrap_completed:
-        print("当前状态尚未完成 bootstrap；后续抓取阶段将先建立 seen_ids 再开始发布。")
+    print(
+        f"本轮检查 {summary.checked_count} 个启用 feeds，"
+        f"新增 {summary.new_count} 篇，错误 {summary.error_count} 个。"
+    )
+    if summary.bootstrap_mode:
+        print("当前为 bootstrap 模式：本轮只建立 seen_ids，不发布历史文章。")
     return 0
 
 

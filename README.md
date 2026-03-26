@@ -28,6 +28,8 @@ feeds:
 
 状态文件默认写入 `state/state.json`，后续会由独立的 `rss-state` 分支保存。
 
+首次运行会自动进入 bootstrap 模式：抓取当前 feed，但只写入 `seen_ids`，不回补历史文章。
+
 ## 开发
 
 ```bash
