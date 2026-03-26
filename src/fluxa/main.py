@@ -72,6 +72,7 @@ def main() -> int:
     except FluxaError as exc:
         parser.exit(status=1, message=f"错误: {exc}\n")
 
+    # 轮询过程会原地更新 state；先复制一份，确保发布失败时不会污染刚加载的旧状态。
     next_state = deepcopy(state)
 
     try:
@@ -86,6 +87,7 @@ def main() -> int:
     publish_result: PublishResult | None = None
     state_saved = False
     operation_error: FluxaError | None = None
+    # bootstrap 以及“本轮无新增”都不应该发 issue，但依然要按成功结果刷新 state。
     should_publish = summary.new_count > 0 and not summary.bootstrap_mode
 
     try:
@@ -176,9 +178,7 @@ def _print_result_sections(summary: RunSummary) -> None:
             print(f"- {_format_recovery_line(result)}")
 
     direct_recoveries = [
-        result
-        for result in summary.recovered_results
-        if not result.used_fallback
+        result for result in summary.recovered_results if not result.used_fallback
     ]
     if direct_recoveries:
         print("本轮恢复成功并扩大抓取窗口的 feeds：")
@@ -214,8 +214,7 @@ def _format_failure_line(result: FeedPollResult) -> str:
     error_text = result.error or "未知错误"
     attempt_text = _format_attempts(result)
     return (
-        f"`{result.feed.id}` / {result.feed_title}: {error_text}"
-        f"；尝试 {attempt_text}"
+        f"`{result.feed.id}` / {result.feed_title}: {error_text}；尝试 {attempt_text}"
     )
 
 
@@ -250,6 +249,7 @@ def _write_step_summary(
     if not step_summary_path:
         return
 
+    # Actions summary 主要服务于排障：既给整体数字，也把恢复成功和失败明细单独列出来。
     lines = [
         "# Fluxa Run Summary",
         "",
@@ -284,9 +284,7 @@ def _write_step_summary(
         )
 
     direct_recoveries = [
-        result
-        for result in summary.recovered_results
-        if not result.used_fallback
+        result for result in summary.recovered_results if not result.used_fallback
     ]
     if direct_recoveries:
         lines.extend(["", "## 失败后恢复成功"])

@@ -18,6 +18,7 @@ def compute_entry_delta(
     current_ids: list[str] = []
     current_id_set: set[str] = set()
 
+    # 同一轮抓取里可能出现重复条目，先按 entry_id 去重，再和历史 seen_ids 做增量比较。
     for entry in entries:
         if entry.entry_id in current_id_set:
             continue
@@ -30,8 +31,10 @@ def compute_entry_delta(
         entry for entry in unique_entries if entry.entry_id not in existing_ids
     ]
     if suppress_new_entries:
+        # bootstrap 模式只建立 seen_ids，不回补历史文章到 issue。
         new_entries = []
 
+    # 新一轮看到的条目始终排在最前面，便于后续优先保留最新的 seen_ids 窗口。
     merged_seen_ids = current_ids + [
         entry_id for entry_id in seen_ids if entry_id not in current_id_set
     ]

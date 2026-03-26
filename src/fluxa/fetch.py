@@ -62,6 +62,7 @@ def poll_feeds(
         return []
 
     results: list[FeedPollResult] = []
+    # 总并发受全局 worker 限制，单 host 再单独限流，避免某个 RSSHub 实例被瞬时打爆。
     host_limiters = _build_host_limiters(feeds)
     max_workers = min(_MAX_WORKERS, len(feeds)) or 1
 
@@ -101,10 +102,12 @@ def poll_feed(
 ) -> FeedPollResult:
     checked_at = _utcnow_iso()
     recovered_from_error = _was_previous_poll_error(feed_state)
+    # 某个 feed 刚从失败恢复时，临时扩大抓取窗口，尽量补回停机期间漏掉的新文章。
     effective_entry_limit = _resolve_entry_limit(feed, recovered_from_error)
     source_states = _clone_source_states(feed_state)
     attempts: list[FeedAttemptResult] = []
 
+    # 来源顺序会优先尝试上次成功的实例；一旦某个来源成功，本轮就提前结束。
     for source_url in _resolve_source_urls(feed, feed_state):
         source_state = source_states.get(source_url)
         if source_state is None:
@@ -200,6 +203,7 @@ def _poll_source(
     host_limiters: dict[str, BoundedSemaphore],
     entry_limit: int,
 ) -> _SourcePollResult:
+    # 条件请求按来源 URL 维度缓存，避免不同 RSSHub 实例之间错误复用 ETag / Last-Modified。
     request_headers = _build_conditional_headers(source_state)
     attempts: list[FeedAttemptResult] = []
     total_attempts = _MAX_RETRIES + 1
@@ -240,6 +244,7 @@ def _poll_source(
 
             response.raise_for_status()
             parsed = feedparser.parse(response.content)
+            # feedparser 解析容错较强；只要能提取到条目，就仍按成功处理。
             feed_title = feed.title or parsed.feed.get("title") or feed.id
             entries = normalize_entries(
                 feed,
@@ -296,6 +301,7 @@ def _poll_source(
                 )
             )
             if attempt_number < total_attempts and _is_retryable_error(exc):
+                # 只对瞬时错误重试，避免把 4xx 配置错误或永久失效源重复打满。
                 sleep(_RETRY_BACKOFF_SECONDS * attempt_number)
                 continue
             return _SourcePollResult(
@@ -349,6 +355,7 @@ def _resolve_source_urls(
     ordered_urls: list[str] = []
     seen_urls: set[str] = set()
 
+    # 上次成功的实例通常命中率最高，下一轮优先尝试它，减少不必要的 fallback 探测。
     if (
         feed_state.last_success_source
         and feed_state.last_success_source in feed.source_urls
@@ -446,6 +453,7 @@ def _resolve_primary_cache(
     previous_state: FeedState,
     source_states: dict[str, FeedSourceState],
 ) -> tuple[str | None, str | None]:
+    # 顶层 FeedState 继续保留主源缓存，兼容旧状态结构；来源级细节单独放在 sources 中。
     primary_state = source_states.get(feed.url)
     if primary_state is not None:
         return primary_state.etag, primary_state.last_modified
@@ -473,6 +481,7 @@ def _clone_source_state(source_state: FeedSourceState) -> FeedSourceState:
 def _resolve_entry_limit(feed: FeedConfig, recovered_from_error: bool) -> int:
     if not recovered_from_error:
         return feed.max_entries_per_feed
+    # 恢复窗口只临时放大，并设置上限，避免热门源一次性回补过多历史文章。
     return min(
         max(feed.max_entries_per_feed * _RECOVERY_WINDOW_MULTIPLIER, 1),
         _RECOVERY_MAX_ENTRIES_CAP,

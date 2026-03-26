@@ -72,6 +72,7 @@ def _build_entry_id(
         if value:
             return value
 
+    # 部分 feed 没有稳定 ID，这里退化为内容指纹，保证增量逻辑仍能工作。
     seed = "|".join(
         [
             title,
@@ -87,6 +88,7 @@ def _build_entry_id(
 
 
 def _extract_summary(raw_entry: Mapping[str, Any]) -> str | None:
+    # 优先取 feed 已经整理好的摘要，再回退到 description / content。
     summary = _clean_text(raw_entry.get("summary"))
     if summary:
         return summary[:280]
@@ -106,6 +108,7 @@ def _extract_summary(raw_entry: Mapping[str, Any]) -> str | None:
 
 
 def _extract_datetime(raw_entry: Mapping[str, Any]) -> datetime | None:
+    # 先用 feedparser 给出的 struct_time；只有缺失时才尝试解析原始时间文本。
     for key in ("published_parsed", "updated_parsed", "created_parsed"):
         value = raw_entry.get(key)
         normalized = _parse_struct_time(value)

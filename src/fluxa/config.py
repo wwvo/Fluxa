@@ -61,6 +61,7 @@ def load_config(path: Path) -> AppConfig:
         feed = FeedConfig(
             id=feed_id,
             url=feed_url,
+            # 非 RSSHub 源保持原样；RSSHub 源则在 Python 侧自动补出实例池回退顺序。
             fallback_urls=resolve_fallback_urls(
                 feed_url,
                 explicit_fallback_urls,

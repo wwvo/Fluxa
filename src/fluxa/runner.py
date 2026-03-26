@@ -12,6 +12,7 @@ def run_cycle(
     *,
     force_bootstrap: bool,
 ) -> RunSummary:
+    # 先按当前配置收敛 state.feeds，移除已删除 feed 的旧状态，并补齐新增 feed 的空状态。
     state.ensure_feeds([feed.id for feed in config.feeds])
     bootstrap_mode = force_bootstrap or not state.bootstrap_completed
     results = poll_feeds(

@@ -34,6 +34,7 @@ def resolve_fallback_urls(
     if split_result is None:
         return ()
 
+    # 维护时只需要关心实例池；具体 route 直接复用主源 URL 上的 path/query/fragment。
     generated_urls = [
         _join_base_and_route(base_url, split_result)
         for base_url in _RSSHUB_INSTANCE_BASES

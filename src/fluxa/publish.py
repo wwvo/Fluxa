@@ -53,6 +53,7 @@ def publish_summary(
     )
 
     if dry_run:
+        # dry-run 仍然完整渲染 issue，方便本地核对模板和数据，但不触发 gh 写操作。
         return PublishResult(
             repo=repo_name,
             issue_number=None,
@@ -107,6 +108,7 @@ def upsert_run_issue(
     if not isinstance(issues, list):
         raise PublishError("gh issue list 返回了异常结果")
 
+    # 通过 HTML 注释里的 run_marker 做幂等匹配，workflow 重跑时会更新原 issue，而不是重复创建。
     for issue in issues:
         if not isinstance(issue, dict):
             continue
