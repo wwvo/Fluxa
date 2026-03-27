@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from fluxa.models import AppState, FeedState, StateError
-from fluxa.state import load_state, save_state
+from fluxa.models import AppState, FeedState, PublishState, StateError
+from fluxa.state import load_publish_state, load_state, save_publish_state, save_state
 
 
 class StatePersistenceTests(unittest.TestCase):
@@ -30,6 +30,36 @@ class StatePersistenceTests(unittest.TestCase):
         self.assertEqual(
             loaded_state.feeds["demo"].seen_ids,
             ["entry-1", "entry-2"],
+        )
+
+    def test_save_publish_state_round_trip(self) -> None:
+        publish_state = PublishState()
+        publish_state.record_issue(
+            window_key="2026-03-27|08:00-10:00",
+            issue_date="2026-03-27",
+            display_key="08:00-10:00",
+            issue_title="Fluxa Digest | 2026-03-27 | run 23626373259",
+            run_id="23626373259",
+            publisher="github",
+            repo="wwvo/Fluxa",
+            issue_number=12,
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            publish_state_path = Path(temp_dir) / "publish-state.json"
+            save_publish_state(publish_state_path, publish_state)
+            loaded_publish_state = load_publish_state(publish_state_path)
+
+        self.assertEqual(
+            loaded_publish_state.get_issue_number(
+                "2026-03-27|08:00-10:00",
+                "github",
+            ),
+            12,
+        )
+        self.assertEqual(
+            loaded_publish_state.latest_window_key,
+            "2026-03-27|08:00-10:00",
         )
 
     def test_save_state_removes_temp_file_when_replace_fails(self) -> None:

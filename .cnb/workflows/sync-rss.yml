@@ -49,6 +49,13 @@
               '  "feeds": {}' \
               '}' \
               > "$STATE_ROOT/state/state.json"
+            printf '%s\n' \
+              '{' \
+              '  "schema_version": 1,' \
+              '  "latest_window_key": null,' \
+              '  "windows": {}' \
+              '}' \
+              > "$STATE_ROOT/state/publish-state.json"
           fi
 
           git config --global --add safe.directory "$(cd "$STATE_ROOT" && pwd)"
@@ -64,6 +71,7 @@
             --publisher "$FLUXA_PUBLISHER" \
             --repo "$CNB_REPO" \
             --state-path .cnb-tmp/state-worktree/state/state.json \
+            --publish-state-path .cnb-tmp/state-worktree/state/publish-state.json \
             --timezone "$TZ" \
             --run-id "$RUN_ID"
 
@@ -77,14 +85,14 @@
 
           git -C "$STATE_ROOT" config user.name "illegal_name"
           git -C "$STATE_ROOT" config user.email "NSC0TbC7oYPediWNVyWWaC+illegal_name_cnb.by9cbmyhqda@noreply.cnb.cool"
-          git -C "$STATE_ROOT" add state/state.json
+          git -C "$STATE_ROOT" add state/state.json state/publish-state.json
 
-          if [ -z "$(git -C "$STATE_ROOT" status --short -- state/state.json)" ]; then
+          if [ -z "$(git -C "$STATE_ROOT" status --short -- state/state.json state/publish-state.json)" ]; then
             echo "rss-state 无暂存变更，跳过提交"
             exit 0
           fi
 
-          git -C "$STATE_ROOT" commit -m "🔧 chore(state): 更新 RSS 状态"
+          git -C "$STATE_ROOT" commit -m "🔧 chore(state): 更新 RSS 状态与发布账本"
           git -C "$STATE_ROOT" push origin HEAD:"$STATE_BRANCH"
 
 main:

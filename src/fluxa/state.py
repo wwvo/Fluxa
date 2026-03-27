@@ -11,41 +11,57 @@ import os
 import tempfile
 from pathlib import Path
 
-from fluxa.models import AppState, StateError
+from fluxa.models import AppState, PublishState, StateError
 
 
 def load_state(path: Path) -> AppState:
+    return AppState.from_dict(_load_json_object(path, "状态文件"))
+
+
+def load_publish_state(path: Path) -> PublishState:
+    return PublishState.from_dict(_load_json_object(path, "发布账本"))
+
+
+def save_state(path: Path, state: AppState) -> None:
+    _save_json_object(path, state.to_dict(), "状态文件")
+
+
+def save_publish_state(path: Path, state: PublishState) -> None:
+    _save_json_object(path, state.to_dict(), "发布账本")
+
+
+def _load_json_object(path: Path, label: str) -> dict[str, object]:
     if not path.exists():
-        return AppState()
+        return {}
 
     try:
         raw_text = path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise StateError(f"状态文件读取失败: {path}") from exc
+        raise StateError(f"{label}读取失败: {path}") from exc
 
     try:
         raw = json.loads(raw_text)
     except json.JSONDecodeError as exc:
-        raise StateError(f"状态文件 JSON 解析失败: {path}") from exc
+        raise StateError(f"{label} JSON 解析失败: {path}") from exc
 
     if not isinstance(raw, dict):
-        raise StateError("状态文件根节点必须是对象")
+        raise StateError(f"{label}根节点必须是对象")
 
-    return AppState.from_dict(raw)
+    return raw
 
 
-def save_state(path: Path, state: AppState) -> None:
+def _save_json_object(path: Path, payload: dict[str, object], label: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(
-        state.to_dict(),
+    content = json.dumps(
+        payload,
         ensure_ascii=False,
         indent=2,
         sort_keys=False,
     )
     try:
-        _write_atomic_text(path, f"{payload}\n")
+        _write_atomic_text(path, f"{content}\n")
     except OSError as exc:
-        raise StateError(f"状态文件写入失败: {path}") from exc
+        raise StateError(f"{label}写入失败: {path}") from exc
 
 
 def _write_atomic_text(path: Path, content: str) -> None:

@@ -337,6 +337,183 @@ class AppState:
 
 
 @dataclass(slots=True)
+class PublishTargetState:
+    """单个发布后端的 issue 落盘信息。"""
+
+    repo: str | None = None
+    issue_number: int | None = None
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "PublishTargetState":
+        issue_number = payload.get("issue_number")
+        if issue_number is not None:
+            if not _is_strict_int(issue_number) or issue_number <= 0:
+                raise StateError("publish.target.issue_number 必须是正整数")
+        return cls(
+            repo=_coerce_optional_str(payload.get("repo"), "publish.target.repo"),
+            issue_number=issue_number,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "repo": self.repo,
+            "issue_number": self.issue_number,
+        }
+
+
+@dataclass(slots=True)
+class PublishWindowState:
+    """单个抓取窗口的发布账本。"""
+
+    issue_date: str
+    display_key: str
+    issue_title: str
+    run_id: str
+    publishers: dict[str, PublishTargetState] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "PublishWindowState":
+        publishers_raw = payload.get("publishers", {})
+        if not isinstance(publishers_raw, dict):
+            raise StateError("publish.window.publishers 必须是对象")
+
+        publishers: dict[str, PublishTargetState] = {}
+        for publisher_name, publisher_payload in publishers_raw.items():
+            if not isinstance(publisher_name, str) or not publisher_name.strip():
+                raise StateError("publish.window.publishers 的 key 必须是非空字符串")
+            if not isinstance(publisher_payload, dict):
+                raise StateError(
+                    f"publish.window.publishers.{publisher_name} 必须是对象"
+                )
+            publishers[publisher_name] = PublishTargetState.from_dict(publisher_payload)
+
+        issue_date = _coerce_required_str(
+            payload.get("issue_date"), "publish.window.issue_date"
+        )
+        display_key = _coerce_required_str(
+            payload.get("display_key"),
+            "publish.window.display_key",
+        )
+        issue_title = _coerce_required_str(
+            payload.get("issue_title"),
+            "publish.window.issue_title",
+        )
+        run_id = _coerce_required_str(payload.get("run_id"), "publish.window.run_id")
+        return cls(
+            issue_date=issue_date,
+            display_key=display_key,
+            issue_title=issue_title,
+            run_id=run_id,
+            publishers=publishers,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "issue_date": self.issue_date,
+            "display_key": self.display_key,
+            "issue_title": self.issue_title,
+            "run_id": self.run_id,
+            "publishers": {
+                publisher_name: publisher_state.to_dict()
+                for publisher_name, publisher_state in sorted(self.publishers.items())
+            },
+        }
+
+
+@dataclass(slots=True)
+class PublishState:
+    """Issue 发布账本。"""
+
+    schema_version: int = 1
+    latest_window_key: str | None = None
+    windows: dict[str, PublishWindowState] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "PublishState":
+        schema_version = payload.get("schema_version", 1)
+        if not _is_strict_int(schema_version) or schema_version < 1:
+            raise StateError("publish.schema_version 必须是正整数")
+
+        latest_window_key = _coerce_optional_str(
+            payload.get("latest_window_key"),
+            "publish.latest_window_key",
+        )
+
+        windows_raw = payload.get("windows", {})
+        if not isinstance(windows_raw, dict):
+            raise StateError("publish.windows 必须是对象")
+
+        windows: dict[str, PublishWindowState] = {}
+        for window_key, window_payload in windows_raw.items():
+            if not isinstance(window_key, str) or not window_key.strip():
+                raise StateError("publish.windows 的 key 必须是非空字符串")
+            if not isinstance(window_payload, dict):
+                raise StateError(f"publish.windows.{window_key} 必须是对象")
+            windows[window_key] = PublishWindowState.from_dict(window_payload)
+
+        return cls(
+            schema_version=schema_version,
+            latest_window_key=latest_window_key,
+            windows=windows,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "latest_window_key": self.latest_window_key,
+            "windows": {
+                window_key: window_state.to_dict()
+                for window_key, window_state in sorted(self.windows.items())
+            },
+        }
+
+    def get_issue_number(self, window_key: str, publisher: str) -> int | None:
+        window_state = self.windows.get(window_key)
+        if window_state is None:
+            return None
+        publisher_state = window_state.publishers.get(publisher)
+        if publisher_state is None:
+            return None
+        return publisher_state.issue_number
+
+    def record_issue(
+        self,
+        *,
+        window_key: str,
+        issue_date: str,
+        display_key: str,
+        issue_title: str,
+        run_id: str,
+        publisher: str,
+        repo: str,
+        issue_number: int,
+    ) -> None:
+        normalized_window_key = window_key.strip()
+        if not normalized_window_key:
+            raise StateError("publish.window_key 不能为空")
+
+        window_state = self.windows.get(normalized_window_key)
+        if window_state is None:
+            window_state = PublishWindowState(
+                issue_date=issue_date,
+                display_key=display_key,
+                issue_title=issue_title,
+                run_id=run_id,
+            )
+            self.windows[normalized_window_key] = window_state
+
+        window_state.issue_date = issue_date
+        window_state.display_key = display_key
+        window_state.issue_title = issue_title
+        window_state.run_id = run_id
+        window_state.publishers[publisher] = PublishTargetState(
+            repo=repo,
+            issue_number=issue_number,
+        )
+        self.latest_window_key = normalized_window_key
+
+
+@dataclass(slots=True)
 class RunSummary:
     """一次完整轮询的汇总结果。"""
 
@@ -392,6 +569,13 @@ def _coerce_optional_str(value: Any, field_name: str) -> str | None:
         raise StateError(f"{field_name} 必须是字符串")
     text = value.strip()
     return text or None
+
+
+def _coerce_required_str(value: Any, field_name: str) -> str:
+    text = _coerce_optional_str(value, field_name)
+    if text is None:
+        raise StateError(f"{field_name} 必须是非空字符串")
+    return text
 
 
 def _is_strict_int(value: Any) -> bool:

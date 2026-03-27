@@ -17,7 +17,7 @@ from fluxa.config import load_config
 from fluxa.models import FeedPollResult, FluxaError, RunSummary
 from fluxa.publish import PublishResult, publish_summaries
 from fluxa.runner import run_cycle
-from fluxa.state import load_state, save_state
+from fluxa.state import load_publish_state, load_state, save_state
 
 
 @dataclass(slots=True, frozen=True)
@@ -41,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--state-path",
         default="state/state.json",
         help="Path to the state file in the checked out state branch workspace.",
+    )
+    parser.add_argument(
+        "--publish-state-path",
+        default=None,
+        help="Path to the publish ledger file. Defaults to a sibling publish-state.json next to --state-path.",
     )
     parser.add_argument(
         "--bootstrap-only",
@@ -91,10 +96,15 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
     publishers = _resolve_cli_publishers(args.publisher)
+    publish_state_path = _resolve_publish_state_path(
+        args.publish_state_path,
+        args.state_path,
+    )
 
     try:
         config = load_config(Path(args.config))
         state = load_state(Path(args.state_path))
+        publish_state = load_publish_state(publish_state_path)
     except FluxaError as exc:
         parser.exit(status=1, message=f"错误: {exc}\n")
 
@@ -111,7 +121,7 @@ def main() -> int:
         parser.exit(status=1, message=f"错误: {exc}\n")
 
     publish_results: list[PublishResult] = []
-    state_saved = False
+    feed_state_saved = False
     operation_error: FluxaError | None = None
     # bootstrap 以及“本轮无新增”都不应该发 issue，但依然要按成功结果刷新 state。
     should_publish = summary.new_count > 0 and not summary.bootstrap_mode
@@ -127,21 +137,24 @@ def main() -> int:
                 run_id=args.run_id,
                 display_key=args.display_key,
                 dry_run=args.dry_run,
+                publish_state=publish_state,
+                publish_state_path=publish_state_path,
             )
 
         if not args.dry_run:
             save_state(Path(args.state_path), next_state)
-            state_saved = True
+            feed_state_saved = True
     except FluxaError as exc:
         operation_error = exc
 
     _print_overview(
         config_path=args.config,
         state_path=args.state_path,
+        publish_state_path=str(publish_state_path),
         summary=summary,
         publish_results=publish_results,
         dry_run=args.dry_run,
-        state_saved=state_saved,
+        feed_state_saved=feed_state_saved,
         total_count=len(config.feeds),
         enabled_count=len(config.enabled_feeds),
     )
@@ -150,9 +163,10 @@ def main() -> int:
         summary,
         config_path=args.config,
         state_path=args.state_path,
+        publish_state_path=str(publish_state_path),
         publish_results=publish_results,
         dry_run=args.dry_run,
-        state_saved=state_saved,
+        feed_state_saved=feed_state_saved,
         operation_error=operation_error,
         total_count=len(config.feeds),
         enabled_count=len(config.enabled_feeds),
@@ -167,16 +181,18 @@ def _print_overview(
     *,
     config_path: str,
     state_path: str,
+    publish_state_path: str,
     summary: RunSummary,
     publish_results: Sequence[PublishResult],
     dry_run: bool,
-    state_saved: bool,
+    feed_state_saved: bool,
     total_count: int,
     enabled_count: int,
 ) -> None:
     print(
         f"Fluxa 已加载 {total_count} 个 feeds（启用 {enabled_count} 个），"
-        f"配置文件为 {config_path}，状态文件目标路径为 {state_path}"
+        f"配置文件为 {config_path}，状态文件目标路径为 {state_path}，"
+        f"发布账本路径为 {publish_state_path}"
     )
     print(
         f"本轮检查 {summary.checked_count} 个启用 feeds，"
@@ -204,8 +220,8 @@ def _print_overview(
                 f"- {publisher_label} issue #{publish_result.issue_number} @ {publish_result.repo}"
             )
 
-    if not dry_run and state_saved:
-        print("状态文件已保存。")
+    if not dry_run and feed_state_saved:
+        print("RSS 状态文件已保存。")
 
 
 def _print_result_sections(summary: RunSummary) -> None:
@@ -269,9 +285,10 @@ def _write_step_summary(
     *,
     config_path: str,
     state_path: str,
+    publish_state_path: str,
     publish_results: Sequence[PublishResult],
     dry_run: bool,
-    state_saved: bool,
+    feed_state_saved: bool,
     operation_error: FluxaError | None,
     total_count: int,
     enabled_count: int,
@@ -284,8 +301,9 @@ def _write_step_summary(
         summary,
         config_path=config_path,
         state_path=state_path,
+        publish_state_path=publish_state_path,
         dry_run=dry_run,
-        state_saved=state_saved,
+        feed_state_saved=feed_state_saved,
         total_count=total_count,
         enabled_count=enabled_count,
     )
@@ -316,8 +334,9 @@ def _build_step_summary_header_lines(
     *,
     config_path: str,
     state_path: str,
+    publish_state_path: str,
     dry_run: bool,
-    state_saved: bool,
+    feed_state_saved: bool,
     total_count: int,
     enabled_count: int,
 ) -> list[str]:
@@ -326,7 +345,8 @@ def _build_step_summary_header_lines(
         "# Fluxa Run Summary",
         "",
         f"- 配置文件：`{config_path}`",
-        f"- 状态文件：`{state_path}`",
+        f"- RSS 状态文件：`{state_path}`",
+        f"- 发布账本文件：`{publish_state_path}`",
         f"- Feed 总数：{total_count}",
         f"- 启用 Feed：{enabled_count}",
         f"- 本轮检查：{summary.checked_count}",
@@ -335,7 +355,7 @@ def _build_step_summary_header_lines(
         f"- 304 / 无变化：{summary.not_modified_count}",
         f"- bootstrap 模式：{'是' if summary.bootstrap_mode else '否'}",
         f"- dry-run：{'是' if dry_run else '否'}",
-        f"- 状态已保存：{'是' if state_saved else '否'}",
+        f"- RSS 状态已保存：{'是' if feed_state_saved else '否'}",
     ]
 
 
@@ -419,6 +439,16 @@ def _resolve_cli_publishers(raw_publishers: list[str] | None) -> list[str]:
         if publisher not in publishers:
             publishers.append(publisher)
     return publishers
+
+
+def _resolve_publish_state_path(
+    raw_publish_state_path: str | None,
+    state_path: str,
+) -> Path:
+    if raw_publish_state_path:
+        return Path(raw_publish_state_path)
+    resolved_state_path = Path(state_path)
+    return resolved_state_path.with_name("publish-state.json")
 
 
 if __name__ == "__main__":

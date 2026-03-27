@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import tempfile
 from collections.abc import Mapping, Sequence
@@ -21,14 +22,16 @@ from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fluxa.models import PublishError, RunSummary
+from fluxa.models import PublishError, PublishState, RunSummary
 from fluxa.render import render_run_issue
+from fluxa.state import save_publish_state
 
 _GH_TIMEOUT_SECONDS = 60
 _CNB_TIMEOUT_SECONDS = 60
 _CNB_EMPTY_ISSUE_LIST_TEXT = "没有找到符合条件的 Issue"
-_CNB_ISSUE_SEARCH_LIMIT = 20
 _SUPPORTED_PUBLISHERS = {"github", "cnb"}
+_GITHUB_ISSUE_URL_PATTERN = re.compile(r"/issues/(?P<number>\d+)(?:\D*)$")
+_CNB_ISSUE_URL_PATTERN = re.compile(r"/-/issues/(?P<number>\d+)(?:\D*)$")
 
 
 @dataclass(slots=True, frozen=True)
@@ -49,7 +52,8 @@ class _IssueDraft:
     issue_body: str
     run_id: str
     issue_date: str
-    run_marker: str
+    display_key: str
+    window_key: str
 
 
 def publish_summary(
@@ -62,6 +66,8 @@ def publish_summary(
     run_id: str | None,
     display_key: str | None,
     dry_run: bool,
+    publish_state: PublishState | None = None,
+    publish_state_path: Path | None = None,
 ) -> PublishResult:
     return publish_summaries(
         summary,
@@ -72,6 +78,8 @@ def publish_summary(
         run_id=run_id,
         display_key=display_key,
         dry_run=dry_run,
+        publish_state=publish_state,
+        publish_state_path=publish_state_path,
     )[0]
 
 
@@ -85,6 +93,8 @@ def publish_summaries(
     run_id: str | None,
     display_key: str | None,
     dry_run: bool,
+    publish_state: PublishState | None = None,
+    publish_state_path: Path | None = None,
 ) -> list[PublishResult]:
     publisher_names = _resolve_publishers(publishers)
     if repo is not None and len(publisher_names) > 1:
@@ -116,6 +126,13 @@ def publish_summaries(
             for publisher_name in publisher_names
         ]
 
+    resolved_publish_state = _require_publish_state(
+        publish_state,
+        publish_state_path,
+    )
+    if publish_state_path is None:
+        raise PublishError("缺少发布账本路径，请传入 publish_state_path")
+
     results: list[PublishResult] = []
     with tempfile.TemporaryDirectory(prefix="fluxa-") as temp_dir:
         temp_path = Path(temp_dir)
@@ -133,10 +150,23 @@ def publish_summaries(
                 publisher_name,
                 repo_name,
                 issue_title=draft.issue_title,
-                run_marker=draft.run_marker,
                 issue_body_path=issue_path,
-                run_id=draft.run_id,
+                existing_issue_number=resolved_publish_state.get_issue_number(
+                    draft.window_key,
+                    publisher_name,
+                ),
             )
+            resolved_publish_state.record_issue(
+                window_key=draft.window_key,
+                issue_date=draft.issue_date,
+                display_key=draft.display_key,
+                issue_title=draft.issue_title,
+                run_id=draft.run_id,
+                publisher=publisher_name,
+                repo=repo_name,
+                issue_number=issue_number,
+            )
+            save_publish_state(publish_state_path, resolved_publish_state)
             results.append(
                 _build_publish_result(
                     publisher_name,
@@ -162,7 +192,7 @@ def _build_issue_draft(
     run_time = datetime.now(timezone).replace(microsecond=0)
     issue_date = run_time.date().isoformat()
     resolved_display_key = _resolve_display_key(display_key, run_time)
-    issue_title = f"Fluxa Digest | {issue_date} | {resolved_display_key}"
+    issue_title = f"Fluxa Digest | {issue_date} | run {resolved_run_id}"
     issue_body = render_run_issue(
         templates_dir,
         summary,
@@ -178,7 +208,8 @@ def _build_issue_draft(
         issue_body=issue_body,
         run_id=resolved_run_id,
         issue_date=issue_date,
-        run_marker=f"fluxa-run:{resolved_run_id}",
+        display_key=resolved_display_key,
+        window_key=f"{issue_date}|{resolved_display_key}",
     )
 
 
@@ -204,24 +235,22 @@ def upsert_run_issue(
     repo: str,
     *,
     issue_title: str,
-    run_marker: str,
     issue_body_path: Path,
-    run_id: str,
+    existing_issue_number: int | None,
 ) -> int:
     publisher_name = _resolve_publisher(publisher)
     if publisher_name == "github":
         return _upsert_github_run_issue(
             repo,
             issue_title=issue_title,
-            run_marker=run_marker,
             issue_body_path=issue_body_path,
+            existing_issue_number=existing_issue_number,
         )
     return _upsert_cnb_run_issue(
         repo,
         issue_title=issue_title,
-        run_marker=run_marker,
         issue_body_path=issue_body_path,
-        run_id=run_id,
+        existing_issue_number=existing_issue_number,
     )
 
 
@@ -229,13 +258,12 @@ def _upsert_github_run_issue(
     repo: str,
     *,
     issue_title: str,
-    run_marker: str,
     issue_body_path: Path,
+    existing_issue_number: int | None,
 ) -> int:
-    issue_number = _find_github_run_issue_number(repo, run_marker)
-    if issue_number is not None:
-        _update_github_issue(repo, issue_number, issue_title, issue_body_path)
-        return issue_number
+    if existing_issue_number is not None:
+        _update_github_issue(repo, existing_issue_number, issue_title, issue_body_path)
+        return existing_issue_number
 
     return _create_github_issue(repo, issue_title, issue_body_path)
 
@@ -244,14 +272,12 @@ def _upsert_cnb_run_issue(
     repo: str,
     *,
     issue_title: str,
-    run_marker: str,
     issue_body_path: Path,
-    run_id: str,
+    existing_issue_number: int | None,
 ) -> int:
-    issue_number = _find_cnb_run_issue_number(repo, run_marker, run_id)
-    if issue_number is not None:
-        _update_cnb_issue(repo, issue_number, issue_title, issue_body_path)
-        return issue_number
+    if existing_issue_number is not None:
+        _update_cnb_issue(repo, existing_issue_number, issue_title, issue_body_path)
+        return existing_issue_number
 
     return _create_cnb_issue(repo, issue_title, issue_body_path)
 
@@ -306,110 +332,6 @@ def _create_github_issue(
     return issue_number
 
 
-def _find_github_run_issue_number(repo: str, run_marker: str) -> int | None:
-    marker = _wrap_run_marker(run_marker)
-    page = 1
-
-    while True:
-        issues = _run_gh_json(
-            [
-                "api",
-                f"repos/{repo}/issues",
-                "--method",
-                "GET",
-                "-f",
-                "state=all",
-                "-f",
-                "per_page=100",
-                "-f",
-                f"page={page}",
-            ]
-        )
-        issue_items = _as_json_list(issues)
-        if issue_items is None:
-            raise PublishError("gh issue 查询返回了异常结果")
-        if not issue_items:
-            return None
-
-        for issue in issue_items:
-            issue_number = _match_issue_number(issue, marker)
-            if issue_number is not None:
-                return issue_number
-
-        if len(issue_items) < 100:
-            return None
-        page += 1
-
-
-def _find_cnb_run_issue_number(
-    repo: str,
-    run_marker: str,
-    run_id: str,
-) -> int | None:
-    marker = _wrap_run_marker(run_marker)
-    if not run_id.strip():
-        return None
-
-    for state in ("open", "closed"):
-        candidate_numbers = _list_cnb_candidate_issue_numbers(
-            repo,
-            state=state,
-        )
-        for issue_number in candidate_numbers:
-            issue = _view_cnb_issue(repo, issue_number)
-            matched_issue_number = _match_issue_number(issue, marker)
-            if matched_issue_number is not None:
-                return matched_issue_number
-    return None
-
-
-def _list_cnb_candidate_issue_numbers(
-    repo: str,
-    *,
-    state: str,
-) -> list[int]:
-    issues = _run_cnb_list_json(
-        [
-            "issue",
-            "list",
-            "--repo",
-            repo,
-            "--json",
-            "--state",
-            state,
-            "--limit",
-            str(_CNB_ISSUE_SEARCH_LIMIT),
-            "--sort=-updated_at",
-        ]
-    )
-    issue_numbers: list[int] = []
-    for issue in issues:
-        issue_data = _as_json_mapping(issue)
-        if issue_data is None:
-            continue
-        issue_number = _coerce_issue_number(issue_data.get("number"))
-        if issue_number is not None:
-            issue_numbers.append(issue_number)
-    return issue_numbers
-
-
-def _view_cnb_issue(repo: str, issue_number: int) -> Mapping[str, object]:
-    issue = _run_cnb_json(
-        [
-            "issue",
-            "view",
-            "--repo",
-            repo,
-            "--json",
-            str(issue_number),
-        ]
-    )
-    issue_data = _as_json_mapping(issue)
-    if issue_data is None:
-        raise PublishError("cnb-rs issue view 返回了异常结果")
-    return issue_data
-
-
 def _update_cnb_issue(
     repo: str,
     issue_number: int,
@@ -423,7 +345,6 @@ def _update_cnb_issue(
             "edit",
             "--repo",
             repo,
-            "--json",
             str(issue_number),
             "--title",
             issue_title,
@@ -444,18 +365,14 @@ def _create_cnb_issue(
         "create",
         "--repo",
         repo,
-        "--json",
         "--title",
         issue_title,
         "--body",
         issue_body,
     ]
     command.extend(_build_cnb_issue_create_args())
-    created = _run_cnb_json(command)
-    created_issue = _as_json_mapping(created)
-    if created_issue is None:
-        raise PublishError("创建 CNB issue 失败，未返回 issue number")
-    issue_number = _coerce_issue_number(created_issue.get("number"))
+    output = _run_cnb(command)
+    issue_number = _extract_issue_number_from_output(output, publisher="cnb")
     if issue_number is None:
         raise PublishError("创建 CNB issue 失败，未返回 issue number")
     return issue_number
@@ -474,29 +391,6 @@ def _build_cnb_issue_create_args() -> list[str]:
         command_args.extend(["--assignees", assignees])
 
     return command_args
-
-
-def _match_issue_number(issue: object, marker: str) -> int | None:
-    issue_data = _as_json_mapping(issue)
-    if issue_data is None or "pull_request" in issue_data:
-        return None
-    body = _coerce_text(issue_data.get("body"))
-    if marker not in body:
-        return None
-    issue_number = _coerce_issue_number(issue_data.get("number"))
-    if issue_number is not None:
-        return issue_number
-    raise PublishError("命中的 issue 缺少有效的 number 字段")
-
-
-def _wrap_run_marker(run_marker: str) -> str:
-    return f"<!-- {run_marker} -->"
-
-
-def _as_json_list(value: object) -> list[object] | None:
-    if not isinstance(value, list):
-        return None
-    return cast(list[object], value)
 
 
 def _as_json_mapping(value: object) -> Mapping[str, object] | None:
@@ -519,6 +413,49 @@ def _coerce_issue_number(value: object) -> int | None:
     if isinstance(value, str) and value.isdigit():
         return int(value)
     return None
+
+
+def _extract_issue_number_from_output(
+    output: str,
+    *,
+    publisher: str,
+) -> int | None:
+    normalized = output.strip()
+    if not normalized:
+        return None
+
+    try:
+        payload = json.loads(normalized)
+    except json.JSONDecodeError:
+        payload = None
+    if payload is not None:
+        issue_data = _as_json_mapping(payload)
+        if issue_data is not None:
+            issue_number = _coerce_issue_number(issue_data.get("number"))
+            if issue_number is not None:
+                return issue_number
+
+    pattern = (
+        _GITHUB_ISSUE_URL_PATTERN if publisher == "github" else _CNB_ISSUE_URL_PATTERN
+    )
+    for line in reversed(normalized.splitlines()):
+        match = pattern.search(line.strip())
+        if match is None:
+            continue
+        return int(match.group("number"))
+    return None
+
+
+def _require_publish_state(
+    publish_state: PublishState | None,
+    publish_state_path: Path | None,
+) -> PublishState:
+    if publish_state is None:
+        raise PublishError("缺少发布账本状态，请先加载 publish-state.json 后再执行发布")
+    if publish_state_path is None:
+        raise PublishError("缺少发布账本路径，请传入 publish_state_path")
+    return publish_state
+
 
 
 def _read_env_text(name: str) -> str | None:

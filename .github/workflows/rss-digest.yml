@@ -58,9 +58,16 @@ jobs:
             "feeds": {}
           }
           JSON
+          cat > state/publish-state.json <<'JSON'
+          {
+            "schema_version": 1,
+            "latest_window_key": null,
+            "windows": {}
+          }
+          JSON
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add state/state.json
+          git add state/state.json state/publish-state.json
           git commit -m "🔧 chore(state): 初始化 rss-state 分支"
 
       - name: Setup Python
@@ -104,27 +111,29 @@ jobs:
           --publisher github
           --publisher cnb
           --state-path state-worktree/state/state.json
+          --publish-state-path state-worktree/state/publish-state.json
           --timezone ${{ env.TZ }}
           --run-id ${{ github.run_id }}
 
       - name: Commit state branch
         id: commit-state
+        if: always()
         shell: bash
         working-directory: state-worktree
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- state/state.json; then
+          if [ -z "$(git status --short -- state/state.json state/publish-state.json)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git add state/state.json
-          git commit -m "🔧 chore(state): 更新 RSS 状态"
+          git add state/state.json state/publish-state.json
+          git commit -m "🔧 chore(state): 更新 RSS 状态与发布账本"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Push state branch
-        if: steps.commit-state.outputs.changed == 'true'
+        if: always() && steps.commit-state.outputs.changed == 'true'
         working-directory: state-worktree
         env:
           GITHUB_TOKEN: ${{ github.token }}
