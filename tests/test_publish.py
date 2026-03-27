@@ -140,6 +140,10 @@ class PublishIssueLookupTests(unittest.TestCase):
         mock_run_cnb_list_json.assert_called_once()
         mock_run_cnb_json.assert_called_once()
         mock_run_cnb.assert_called_once()
+        list_command = mock_run_cnb_list_json.call_args.args[0]
+        self.assertIn("--sort", list_command)
+        self.assertIn("-updated_at", list_command)
+        self.assertNotIn("--keyword", list_command)
 
     def test_cnb_upsert_creates_issue_when_no_existing_match(self) -> None:
         create_payload = {

@@ -347,14 +347,12 @@ def _find_cnb_run_issue_number(
     run_id: str,
 ) -> int | None:
     marker = _wrap_run_marker(run_marker)
-    search_keyword = run_id.strip()
-    if not search_keyword:
+    if not run_id.strip():
         return None
 
     for state in ("open", "closed"):
         candidate_numbers = _list_cnb_candidate_issue_numbers(
             repo,
-            search_keyword=search_keyword,
             state=state,
         )
         for issue_number in candidate_numbers:
@@ -368,7 +366,6 @@ def _find_cnb_run_issue_number(
 def _list_cnb_candidate_issue_numbers(
     repo: str,
     *,
-    search_keyword: str,
     state: str,
 ) -> list[int]:
     issues = _run_cnb_list_json(
@@ -382,8 +379,8 @@ def _list_cnb_candidate_issue_numbers(
             state,
             "--limit",
             str(_CNB_ISSUE_SEARCH_LIMIT),
-            "--keyword",
-            search_keyword,
+            "--sort",
+            "-updated_at",
         ]
     )
     issue_numbers: list[int] = []
