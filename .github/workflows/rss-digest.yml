@@ -17,6 +17,9 @@ env:
   PYTHON_VERSION: "3.12"
   STATE_BRANCH: rss-state
   TZ: Asia/Shanghai
+  CNB_REPO: wwvo/Issuo
+  CNB_ISSUE_LABELS: RSS
+  CNB_ISSUE_ASSIGNEES: illegal_name_cnb.by9cbmyhqda,illegal_name_cnb.by9ca6eibfa
 
 jobs:
   digest:
@@ -73,15 +76,34 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Run tests
+        run: uv run python -m unittest discover -s tests
+
+      - name: Install cnb-rs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v cnb-rs >/dev/null 2>&1; then
+            cnb-rs version
+            exit 0
+          fi
+          curl -fsSL https://raw.githubusercontent.com/wwvo/cnb-rs/main/scripts/install.sh | CNB_RS_INSTALL_SOURCE=github bash
+          cnb-rs version
+
       - name: Run Fluxa
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
+          CNB_REPO: ${{ env.CNB_REPO }}
+          CNB_ISSUE_LABELS: ${{ env.CNB_ISSUE_LABELS }}
+          CNB_ISSUE_ASSIGNEES: ${{ env.CNB_ISSUE_ASSIGNEES }}
         run: >
           uv run fluxa
+          --publisher github
+          --publisher cnb
           --state-path state-worktree/state/state.json
-          --repo ${{ github.repository }}
           --timezone ${{ env.TZ }}
           --run-id ${{ github.run_id }}
 

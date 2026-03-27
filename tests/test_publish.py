@@ -12,6 +12,7 @@ from fluxa.publish import (
     _run_cnb,
     _run_cnb_list_json,
     _run_gh,
+    publish_summaries,
     publish_summary,
     upsert_run_issue,
 )
@@ -289,6 +290,55 @@ class PublishIssueLookupTests(unittest.TestCase):
         self.assertEqual(
             result.issue_title, "Fluxa Digest | 2026-03-27 | Morning Window"
         )
+
+    def test_publish_summaries_supports_multiple_dry_run_publishers(self) -> None:
+        summary = _build_summary()
+
+        with (
+            patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
+            patch("fluxa.publish.datetime", _FixedPublishDatetime),
+        ):
+            with patch.dict(
+                "os.environ",
+                {
+                    "GITHUB_REPOSITORY": "wwvo/Fluxa",
+                    "CNB_REPO": "wwvo/Issuo",
+                },
+                clear=True,
+            ):
+                results = publish_summaries(
+                    summary,
+                    Path("."),
+                    publishers=("github", "cnb"),
+                    repo=None,
+                    timezone_name="Asia/Shanghai",
+                    run_id="dual-dry-run",
+                    display_key=None,
+                    dry_run=True,
+                )
+
+        self.assertEqual([result.publisher for result in results], ["github", "cnb"])
+        self.assertEqual(
+            [result.repo for result in results], ["wwvo/Fluxa", "wwvo/Issuo"]
+        )
+        self.assertTrue(all(result.issue_number is None for result in results))
+
+    def test_publish_summaries_rejects_repo_override_for_multiple_publishers(
+        self,
+    ) -> None:
+        summary = _build_summary()
+
+        with self.assertRaises(PublishError):
+            publish_summaries(
+                summary,
+                Path("."),
+                publishers=("github", "cnb"),
+                repo="owner/repo",
+                timezone_name="Asia/Shanghai",
+                run_id="dual-invalid",
+                display_key=None,
+                dry_run=True,
+            )
 
     def test_publish_summary_raises_publish_error_when_template_missing(self) -> None:
         summary = _build_summary()

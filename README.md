@@ -28,7 +28,8 @@
 - 支持 `github / cnb` 双发布后端：GitHub 使用 `gh`，CNB 使用 `cnb-rs`。
 - issue 标题默认使用当前 2 小时抓取窗口，例如 `08:00-10:00`，比纯数字执行 ID 更易读。
 - 同一次调度重跑会命中同一个 `run_id` 对应的 issue，避免重复创建。
-- 同时提供 GitHub Actions 与 CNB 云原生构建流水线，方便按仓库托管位置选择运行环境。
+- 默认以 GitHub Actions 作为唯一调度入口，同一轮会同时发布 GitHub issue 和 CNB issue。
+- 仍保留 CNB 云原生构建流水线作为手动兜底入口，避免主调度故障时完全失去补发能力。
 
 ## 快速开始
 
@@ -57,6 +58,7 @@ uv run fluxa --bootstrap-only
 ```bash
 uv run fluxa --repo wwvo/Fluxa --run-id local-test --dry-run
 uv run fluxa --publisher cnb --repo wwvo/Issuo --run-id local-test --dry-run
+uv run fluxa --publisher github --publisher cnb --run-id local-test --dry-run
 ```
 
 `--dry-run` 会完整执行“加载配置 -> 拉取 feed -> 生成汇总 -> 渲染 issue”，但不会真正写入 issue，也不会保存状态文件。
@@ -83,8 +85,8 @@ uv run fluxa --publisher cnb --state-path state/state.json --repo wwvo/Issuo --r
 | `--config` | `feeds/feeds.yml` | feed 配置文件路径 |
 | `--state-path` | `state/state.json` | 状态文件路径 |
 | `--bootstrap-only` | `false` | 仅初始化状态，不发布 issue |
-| `--publisher` | `github` | 发布后端，`github` 使用 `gh`，`cnb` 使用 `cnb-rs` |
-| `--repo` | 环境变量推导 | issue 目标仓库，格式为 `OWNER/REPO` |
+| `--publisher` | `github` | 发布后端，可重复传入；`github` 使用 `gh`，`cnb` 使用 `cnb-rs` |
+| `--repo` | 环境变量推导 | issue 目标仓库，格式为 `OWNER/REPO`；双发布模式下应分别使用 `GITHUB_REPOSITORY` / `CNB_REPO` |
 | `--templates-dir` | `templates` | Markdown 模板目录 |
 | `--timezone` | `Asia/Shanghai` | issue 标题日期和展示时间使用的时区 |
 | `--run-id` | 环境变量推导 | 本轮执行的幂等标识 |
@@ -372,6 +374,9 @@ feeds:
 - 运行环境：`ubuntu-latest`
 - Python 版本：`3.12`
 - 时区：`Asia/Shanghai`
+- CNB issue 目标仓库：`wwvo/Issuo`
+- CNB issue 标签：`RSS`
+- CNB issue 指派：`illegal_name_cnb.by9cbmyhqda`、`illegal_name_cnb.by9ca6eibfa`
 
 ### 工作流步骤
 
@@ -380,15 +385,20 @@ feeds:
 3. 如果 `rss-state` 不存在，则自动初始化该分支并写入空状态
 4. 安装 Python 与 `uv`
 5. 执行 `uv sync --frozen`
-6. 执行 `uv run fluxa --state-path state-worktree/state/state.json --repo ${{ github.repository }} --run-id ${{ github.run_id }}`
-7. 如果状态文件有变化，则提交并推送到 `rss-state`
+6. 运行单元测试
+7. 安装 `cnb-rs`
+8. 执行 `uv run fluxa --publisher github --publisher cnb --state-path state-worktree/state/state.json --run-id ${{ github.run_id }}`
+9. 如果状态文件有变化，则提交并推送到 `rss-state`
 
 ### 发布到 Issue 的方式
 
-项目不再往单个 issue 下追加 comment，而是为每次运行维护一篇独立 issue：
+项目不再往单个 issue 下追加 comment，而是为每次运行维护一篇独立 issue。同一轮 GitHub Actions 会同时发布两份结果：
 
 - issue 标题格式：`Fluxa Digest | YYYY-MM-DD | HH:00-HH:00`
 - issue 正文中会保留 `Run ID`，并写入 `<!-- fluxa-run:<run_id> -->` 作为幂等标记
+- GitHub issue：发布到当前 GitHub 仓库
+- CNB issue：发布到 `wwvo/Issuo`
+- CNB issue 会附带 `RSS` label，并自动指派 `illegal_name_cnb.by9cbmyhqda`、`illegal_name_cnb.by9ca6eibfa`
 - 同一个 `run_id` 重跑时，会更新原 issue，而不是新建重复 issue
 
 ### 仓库设置要求
@@ -398,6 +408,7 @@ feeds:
 - `Settings -> Actions -> General -> Workflow permissions` 为 `Read and write permissions`
 - workflow 拥有 `contents: write`
 - workflow 拥有 `issues: write`
+- `Settings -> Secrets and variables -> Actions` 中已配置 `CNB_TOKEN`
 
 ## CNB 云原生构建流水线
 
@@ -409,13 +420,14 @@ feeds:
 
 ### 默认行为
 
-- 触发方式：手动按钮 + 每 2 小时定时执行
+- 触发方式：手动按钮
 - 发布后端：`cnb`
 - issue 目标仓库：`wwvo/Issuo`
 - issue 标签：`RSS`
 - issue 指派：`illegal_name_cnb.by9cbmyhqda`、`illegal_name_cnb.by9ca6eibfa`
 - 状态分支：`rss-state`
 - 时区：`Asia/Shanghai`
+- 角色定位：GitHub Actions 失败时的手动兜底
 
 ### 工作流步骤
 
@@ -435,9 +447,9 @@ CNB 流水线不会再调用 GitHub API，而是直接使用 `cnb-rs` 写入 `ww
 - 同一个 `run_id` 的重跑会尝试更新原 CNB issue，而不是重复创建
 - 创建 issue 时会附带 `RSS` label，并自动指派 `illegal_name_cnb.by9cbmyhqda`、`illegal_name_cnb.by9ca6eibfa`
 
-> [!WARNING]
-> 不建议同时开启 GitHub Actions 定时任务和 CNB 定时任务。
-> 因为两边会各自维护自己的 `rss-state` 分支，并且分别往 GitHub / CNB issue 发结果，容易造成重复抓取、状态漂移和双份通知。
+> [!NOTE]
+> 当前推荐的运行方式是：GitHub Actions 负责定时调度，CNB 流水线只保留手动兜底按钮。
+> 这样 `rss-state` 只会由一套定时器维护，避免重复抓取、状态漂移和双份通知。
 
 ## 开发与测试
 

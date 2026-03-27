@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import argparse
 import os
+from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
 from fluxa.config import load_config
 from fluxa.models import FeedPollResult, FluxaError, RunSummary
-from fluxa.publish import PublishResult, publish_summary
+from fluxa.publish import PublishResult, publish_summaries
 from fluxa.runner import run_cycle
 from fluxa.state import load_state, save_state
 
@@ -48,9 +49,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--publisher",
-        default="github",
+        action="append",
+        default=None,
         choices=("github", "cnb"),
-        help="Issue backend. 'github' uses gh, 'cnb' uses cnb-rs.",
+        help="Issue backend. Can be repeated. 'github' uses gh, 'cnb' uses cnb-rs.",
     )
     parser.add_argument(
         "--repo",
@@ -88,6 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    publishers = _resolve_cli_publishers(args.publisher)
 
     try:
         config = load_config(Path(args.config))
@@ -107,7 +110,7 @@ def main() -> int:
     except FluxaError as exc:
         parser.exit(status=1, message=f"错误: {exc}\n")
 
-    publish_result: PublishResult | None = None
+    publish_results: list[PublishResult] = []
     state_saved = False
     operation_error: FluxaError | None = None
     # bootstrap 以及“本轮无新增”都不应该发 issue，但依然要按成功结果刷新 state。
@@ -115,10 +118,10 @@ def main() -> int:
 
     try:
         if should_publish:
-            publish_result = publish_summary(
+            publish_results = publish_summaries(
                 summary,
                 Path(args.templates_dir),
-                publisher=args.publisher,
+                publishers=publishers,
                 repo=args.repo,
                 timezone_name=args.timezone,
                 run_id=args.run_id,
@@ -136,7 +139,7 @@ def main() -> int:
         config_path=args.config,
         state_path=args.state_path,
         summary=summary,
-        publish_result=publish_result,
+        publish_results=publish_results,
         dry_run=args.dry_run,
         state_saved=state_saved,
         total_count=len(config.feeds),
@@ -147,7 +150,7 @@ def main() -> int:
         summary,
         config_path=args.config,
         state_path=args.state_path,
-        publish_result=publish_result,
+        publish_results=publish_results,
         dry_run=args.dry_run,
         state_saved=state_saved,
         operation_error=operation_error,
@@ -165,7 +168,7 @@ def _print_overview(
     config_path: str,
     state_path: str,
     summary: RunSummary,
-    publish_result: PublishResult | None,
+    publish_results: Sequence[PublishResult],
     dry_run: bool,
     state_saved: bool,
     total_count: int,
@@ -186,12 +189,20 @@ def _print_overview(
     elif summary.new_count == 0:
         print("本轮没有新文章，不会发布 issue。")
     elif dry_run:
-        print("当前为 dry-run 模式：已跳过 issue 发布，也未保存 state。")
-    elif publish_result is not None:
-        publisher_label = _publisher_display_name(publish_result.publisher)
-        print(
-            f"已发布到 {publish_result.repo} 的 {publisher_label} issue #{publish_result.issue_number}。"
-        )
+        print("当前为 dry-run 模式：已跳过以下 issue 发布，也未保存 state。")
+        for publish_result in publish_results:
+            publisher_label = _publisher_display_name(publish_result.publisher)
+            if publish_result.repo:
+                print(f"- {publisher_label} issue @ {publish_result.repo}")
+            else:
+                print(f"- {publisher_label} issue")
+    elif publish_results:
+        print("已完成以下 issue 发布：")
+        for publish_result in publish_results:
+            publisher_label = _publisher_display_name(publish_result.publisher)
+            print(
+                f"- {publisher_label} issue #{publish_result.issue_number} @ {publish_result.repo}"
+            )
 
     if not dry_run and state_saved:
         print("状态文件已保存。")
@@ -258,7 +269,7 @@ def _write_step_summary(
     *,
     config_path: str,
     state_path: str,
-    publish_result: PublishResult | None,
+    publish_results: Sequence[PublishResult],
     dry_run: bool,
     state_saved: bool,
     operation_error: FluxaError | None,
@@ -278,13 +289,12 @@ def _write_step_summary(
         total_count=total_count,
         enabled_count=enabled_count,
     )
-    publish_line = _build_publish_result_line(
+    publish_lines = _build_publish_result_lines(
         summary,
-        publish_result=publish_result,
+        publish_results=publish_results,
         dry_run=dry_run,
     )
-    if publish_line is not None:
-        lines.append(publish_line)
+    lines.extend(publish_lines)
     if operation_error is not None:
         lines.extend(["", f"- 操作错误：`{operation_error}`"])
 
@@ -329,26 +339,34 @@ def _build_step_summary_header_lines(
     ]
 
 
-def _build_publish_result_line(
+def _build_publish_result_lines(
     summary: RunSummary,
     *,
-    publish_result: PublishResult | None,
+    publish_results: Sequence[PublishResult],
     dry_run: bool,
-) -> str | None:
-    if publish_result is not None:
-        publisher_label = _publisher_display_name(publish_result.publisher)
-        if dry_run:
-            if publish_result.repo:
-                return f"- 发布结果：dry-run，已跳过向 `{publish_result.repo}` 写入 {publisher_label} issue"
-            return f"- 发布结果：dry-run，已跳过 {publisher_label} issue 写入"
-        return (
-            f"- 发布结果：{publisher_label} issue "
-            f"#{publish_result.issue_number} @ `{publish_result.repo}`"
-        )
+) -> list[str]:
+    if publish_results:
+        lines: list[str] = []
+        if len(publish_results) > 1:
+            lines.append("- 发布结果：")
+        for publish_result in publish_results:
+            publisher_label = _publisher_display_name(publish_result.publisher)
+            prefix = "- " if len(publish_results) == 1 else "  - "
+            target = f"`{publish_result.repo}`" if publish_result.repo else "未解析仓库"
+            if dry_run:
+                lines.append(
+                    f"{prefix}dry-run，已跳过向 {target} 写入 {publisher_label} issue"
+                )
+                continue
+            lines.append(
+                f"{prefix}{publisher_label} issue "
+                f"#{publish_result.issue_number} @ {target}"
+            )
+        return lines
 
     if summary.new_count == 0 or summary.bootstrap_mode:
-        return "- 发布结果：本轮无需发布 issue"
-    return None
+        return ["- 发布结果：本轮无需发布 issue"]
+    return []
 
 
 def _build_failure_section_lines(
@@ -391,6 +409,16 @@ def _build_recovery_sections(summary: RunSummary) -> list[_RecoverySection]:
 
 def _publisher_display_name(publisher: str) -> str:
     return "GitHub" if publisher == "github" else "CNB"
+
+
+def _resolve_cli_publishers(raw_publishers: list[str] | None) -> list[str]:
+    if not raw_publishers:
+        return ["github"]
+    publishers: list[str] = []
+    for publisher in raw_publishers:
+        if publisher not in publishers:
+            publishers.append(publisher)
+    return publishers
 
 
 if __name__ == "__main__":

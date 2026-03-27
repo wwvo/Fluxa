@@ -1,5 +1,5 @@
 branch:
   - buttons:
       - name: 同步 RSS 并发布 CNB Issue
-        description: 拉取 feed、更新 rss-state 分支，并把本轮新增文章发布到 wwvo/Issuo 的 CNB issue
+        description: 作为 GitHub Actions 的手动兜底入口，拉取 feed、更新 rss-state 分支，并把本轮新增文章发布到 wwvo/Issuo 的 CNB issue
         event: web_trigger_sync-rss

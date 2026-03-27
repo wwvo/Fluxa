@@ -101,14 +101,24 @@ class StepSummaryTests(unittest.TestCase):
 
     def test_dry_run_summary_does_not_render_issue_none(self) -> None:
         summary = _build_summary()
-        publish_result = PublishResult(
-            publisher="github",
-            repo=None,
-            issue_number=None,
-            issue_title="Fluxa Digest | 2026-03-27 | run dry-run-1",
-            run_id="dry-run-1",
-            issue_date="2026-03-27",
-        )
+        publish_results = [
+            PublishResult(
+                publisher="github",
+                repo=None,
+                issue_number=None,
+                issue_title="Fluxa Digest | 2026-03-27 | 08:00-10:00",
+                run_id="dry-run-1",
+                issue_date="2026-03-27",
+            ),
+            PublishResult(
+                publisher="cnb",
+                repo="wwvo/Issuo",
+                issue_number=None,
+                issue_title="Fluxa Digest | 2026-03-27 | 08:00-10:00",
+                run_id="dry-run-1",
+                issue_date="2026-03-27",
+            ),
+        ]
 
         with tempfile.TemporaryDirectory() as temp_dir:
             summary_path = Path(temp_dir) / "summary.md"
@@ -119,7 +129,7 @@ class StepSummaryTests(unittest.TestCase):
                     summary,
                     config_path="feeds/feeds.yml",
                     state_path="state/state.json",
-                    publish_result=publish_result,
+                    publish_results=publish_results,
                     dry_run=True,
                     state_saved=False,
                     operation_error=None,
@@ -136,6 +146,8 @@ class StepSummaryTests(unittest.TestCase):
 
         self.assertIn("dry-run", rendered)
         self.assertNotIn("issue #None", rendered)
+        self.assertIn("GitHub issue", rendered)
+        self.assertIn("CNB issue", rendered)
 
     def test_format_attempts_includes_retry_mode_note(self) -> None:
         result = FeedPollResult(

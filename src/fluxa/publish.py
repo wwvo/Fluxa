@@ -14,7 +14,7 @@ import json
 import os
 import subprocess
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -63,12 +63,35 @@ def publish_summary(
     display_key: str | None,
     dry_run: bool,
 ) -> PublishResult:
-    publisher_name = _resolve_publisher(publisher)
-    repo_name = _resolve_repo(
-        repo,
-        publisher=publisher_name,
-        required=not dry_run,
-    )
+    return publish_summaries(
+        summary,
+        templates_dir,
+        publishers=(publisher,),
+        repo=repo,
+        timezone_name=timezone_name,
+        run_id=run_id,
+        display_key=display_key,
+        dry_run=dry_run,
+    )[0]
+
+
+def publish_summaries(
+    summary: RunSummary,
+    templates_dir: Path,
+    *,
+    publishers: Sequence[str],
+    repo: str | None,
+    timezone_name: str,
+    run_id: str | None,
+    display_key: str | None,
+    dry_run: bool,
+) -> list[PublishResult]:
+    publisher_names = _resolve_publishers(publishers)
+    if repo is not None and len(publisher_names) > 1:
+        raise PublishError(
+            "多发布后端模式下不能同时传入 --repo，请改用 GITHUB_REPOSITORY / CNB_REPO 分别配置目标仓库"
+        )
+
     draft = _build_issue_draft(
         templates_dir,
         summary,
@@ -78,36 +101,52 @@ def publish_summary(
     )
 
     if dry_run:
-        # dry-run 仍然完整渲染 issue，方便本地核对模板和数据，但不触发 gh 写操作。
-        return _build_publish_result(
-            publisher_name,
-            repo_name,
-            draft,
-            issue_number=None,
-        )
+        # dry-run 仍然完整渲染 issue，方便本地核对模板和数据，但不触发实际写操作。
+        return [
+            _build_publish_result(
+                publisher_name,
+                _resolve_repo(
+                    repo,
+                    publisher=publisher_name,
+                    required=False,
+                ),
+                draft,
+                issue_number=None,
+            )
+            for publisher_name in publisher_names
+        ]
 
-    if repo_name is None:
-        raise PublishError("缺少目标仓库信息，请传入 --repo 或设置对应环境变量")
-
+    results: list[PublishResult] = []
     with tempfile.TemporaryDirectory(prefix="fluxa-") as temp_dir:
         temp_path = Path(temp_dir)
         issue_path = _write_issue_body(temp_path, draft.issue_body)
 
-        issue_number = upsert_run_issue(
-            publisher_name,
-            repo_name,
-            issue_title=draft.issue_title,
-            run_marker=draft.run_marker,
-            issue_body_path=issue_path,
-            run_id=draft.run_id,
-        )
+        for publisher_name in publisher_names:
+            repo_name = _resolve_repo(
+                repo,
+                publisher=publisher_name,
+                required=True,
+            )
+            if repo_name is None:
+                raise PublishError("缺少目标仓库信息，请传入 --repo 或设置对应环境变量")
+            issue_number = upsert_run_issue(
+                publisher_name,
+                repo_name,
+                issue_title=draft.issue_title,
+                run_marker=draft.run_marker,
+                issue_body_path=issue_path,
+                run_id=draft.run_id,
+            )
+            results.append(
+                _build_publish_result(
+                    publisher_name,
+                    repo_name,
+                    draft,
+                    issue_number=issue_number,
+                )
+            )
 
-    return _build_publish_result(
-        publisher_name,
-        repo_name,
-        draft,
-        issue_number=issue_number,
-    )
+    return results
 
 
 def _build_issue_draft(
@@ -553,6 +592,17 @@ def _resolve_publisher(publisher: str) -> str:
         return normalized
     supported = ", ".join(sorted(_SUPPORTED_PUBLISHERS))
     raise PublishError(f"不支持的发布后端: {publisher}（支持: {supported}）")
+
+
+def _resolve_publishers(publishers: Sequence[str]) -> tuple[str, ...]:
+    normalized_publishers: list[str] = []
+    for publisher in publishers:
+        publisher_name = _resolve_publisher(publisher)
+        if publisher_name not in normalized_publishers:
+            normalized_publishers.append(publisher_name)
+    if not normalized_publishers:
+        raise PublishError("至少需要一个发布后端")
+    return tuple(normalized_publishers)
 
 
 def _resolve_run_id(run_id: str | None) -> str:

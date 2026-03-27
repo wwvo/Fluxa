@@ -89,4 +89,3 @@
 
 main:
   web_trigger_sync-rss: *sync-rss
-  "crontab: 0 */2 * * *": *sync-rss
