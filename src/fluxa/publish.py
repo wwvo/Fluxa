@@ -379,8 +379,7 @@ def _list_cnb_candidate_issue_numbers(
             state,
             "--limit",
             str(_CNB_ISSUE_SEARCH_LIMIT),
-            "--sort",
-            "-updated_at",
+            "--sort=-updated_at",
         ]
     )
     issue_numbers: list[int] = []
