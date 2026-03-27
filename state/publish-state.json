@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "latest_window_key": "2026-03-27|08:00-10:00",
+  "windows": {
+    "2026-03-27|08:00-10:00": {
+      "issue_date": "2026-03-27",
+      "display_key": "08:00-10:00",
+      "issue_title": "Fluxa Digest | 2026-03-27 | run 23627115077",
+      "run_id": "23627115077",
+      "publishers": {
+        "github": {
+          "repo": "wwvo/Fluxa",
+          "issue_number": 6
+        }
+      }
+    }
+  }
+}
