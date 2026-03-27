@@ -6,11 +6,14 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
+
+import httpx
 
 from fluxa.models import AppConfig, FeedDefaults, PublishError, PublishState, RunSummary
 from fluxa.publish import (
-    _run_cnb,
+    _request_cnb_json,
     _run_gh,
     publish_summaries,
     publish_summary,
@@ -87,7 +90,12 @@ class PublishIssueTests(unittest.TestCase):
             issue_body_path = Path(temp_dir) / "issue.md"
             issue_body_path.write_text("# body\n", encoding="utf-8")
 
-            with patch("fluxa.publish._run_cnb", return_value="") as mock_run_cnb:
+            with (
+                patch.dict("os.environ", {"CNB_TOKEN": "token-123"}, clear=False),
+                patch(
+                    "fluxa.publish._request_cnb_empty", return_value=None
+                ) as mock_request_cnb_empty,
+            ):
                 issue_number = upsert_run_issue(
                     "cnb",
                     "owner/repo",
@@ -97,19 +105,23 @@ class PublishIssueTests(unittest.TestCase):
                 )
 
         self.assertEqual(issue_number, 13)
-        mock_run_cnb.assert_called_once()
-        command = mock_run_cnb.call_args.args[0]
-        self.assertEqual(command[:5], ["issue", "edit", "--repo", "owner/repo", "13"])
+        mock_request_cnb_empty.assert_called_once()
+        self.assertEqual(
+            mock_request_cnb_empty.call_args.args[:2], ("PATCH", "owner/repo")
+        )
+        self.assertEqual(mock_request_cnb_empty.call_args.kwargs["issue_number"], 13)
 
     def test_cnb_upsert_creates_issue_when_publish_state_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             issue_body_path = Path(temp_dir) / "issue.md"
             issue_body_path.write_text("# body\n", encoding="utf-8")
 
-            with patch(
-                "fluxa.publish._run_cnb",
-                return_value="https://cnb.cool/owner/repo/-/issues/19\n",
-            ) as mock_run_cnb:
+            with (
+                patch.dict("os.environ", {"CNB_TOKEN": "token-123"}, clear=False),
+                patch(
+                    "fluxa.publish._request_cnb_json", return_value={"number": "19"}
+                ) as mock_request_cnb_json,
+            ):
                 issue_number = upsert_run_issue(
                     "cnb",
                     "owner/repo",
@@ -119,7 +131,7 @@ class PublishIssueTests(unittest.TestCase):
                 )
 
         self.assertEqual(issue_number, 19)
-        mock_run_cnb.assert_called_once()
+        mock_request_cnb_json.assert_called_once()
 
     def test_cnb_upsert_create_passes_labels_and_assignees_from_env(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -130,15 +142,16 @@ class PublishIssueTests(unittest.TestCase):
                 patch.dict(
                     "os.environ",
                     {
+                        "CNB_TOKEN": "token-123",
                         "CNB_ISSUE_LABELS": "RSS",
                         "CNB_ISSUE_ASSIGNEES": "illegal_name_cnb.by9cbmyhqda,illegal_name_cnb.by9ca6eibfa",
                     },
                     clear=False,
                 ),
                 patch(
-                    "fluxa.publish._run_cnb",
-                    return_value="https://cnb.cool/owner/repo/-/issues/21\n",
-                ) as mock_run_cnb,
+                    "fluxa.publish._request_cnb_json",
+                    return_value={"number": "21"},
+                ) as mock_request_cnb_json,
             ):
                 issue_number = upsert_run_issue(
                     "cnb",
@@ -149,14 +162,104 @@ class PublishIssueTests(unittest.TestCase):
                 )
 
         self.assertEqual(issue_number, 21)
-        command = mock_run_cnb.call_args.args[0]
-        self.assertIn("--labels", command)
-        self.assertIn("RSS", command)
-        self.assertIn("--assignees", command)
-        self.assertIn(
-            "illegal_name_cnb.by9cbmyhqda,illegal_name_cnb.by9ca6eibfa",
-            command,
+        payload = mock_request_cnb_json.call_args.kwargs["payload"]
+        self.assertEqual(payload["labels"], ["RSS"])
+        self.assertEqual(
+            payload["assignees"],
+            [
+                "illegal_name_cnb.by9cbmyhqda",
+                "illegal_name_cnb.by9ca6eibfa",
+            ],
         )
+
+    def test_request_cnb_json_sets_user_agent_and_auth_header(self) -> None:
+        captured: dict[str, object] = {}
+
+        class _FakeResponse:
+            status_code = 200
+            text = ""
+            request = SimpleNamespace(url="https://api.cnb.cool/wwvo/Issuo/-/issues")
+
+            @staticmethod
+            def json() -> object:
+                return {"number": "21"}
+
+        class _FakeClient:
+            def __init__(self, *, timeout: float, headers: dict[str, str]) -> None:
+                captured["timeout"] = timeout
+                captured["headers"] = headers
+
+            def __enter__(self) -> "_FakeClient":
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            def request(
+                self, method: str, url: str, *, json: dict[str, object]
+            ) -> _FakeResponse:
+                captured["method"] = method
+                captured["url"] = url
+                captured["json"] = json
+                return _FakeResponse()
+
+        with (
+            patch.dict("os.environ", {"CNB_TOKEN": "token-123"}, clear=True),
+            patch("fluxa.publish.httpx.Client", _FakeClient),
+        ):
+            payload = _request_cnb_json(
+                "POST",
+                "wwvo/Issuo",
+                payload={"title": "hello"},
+            )
+
+        self.assertEqual(payload["number"], "21")
+        self.assertEqual(captured["method"], "POST")
+        self.assertEqual(
+            captured["url"],
+            "https://api.cnb.cool/wwvo/Issuo/-/issues",
+        )
+        headers = captured["headers"]
+        self.assertEqual(headers["Authorization"], "Bearer token-123")
+        self.assertTrue(headers["User-Agent"].startswith("Fluxa/"))
+        self.assertEqual(headers["Accept"], "application/vnd.cnb.api+json")
+
+    def test_request_cnb_json_raises_publish_error_on_timeout(self) -> None:
+        class _TimeoutClient:
+            def __init__(self, *, timeout: float, headers: dict[str, str]) -> None:
+                self.timeout = timeout
+                self.headers = headers
+
+            def __enter__(self) -> "_TimeoutClient":
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            def request(
+                self, method: str, url: str, *, json: dict[str, object]
+            ) -> object:
+                raise httpx.TimeoutException("boom")
+
+        with (
+            patch.dict("os.environ", {"CNB_TOKEN": "token-123"}, clear=True),
+            patch("fluxa.publish.httpx.Client", _TimeoutClient),
+        ):
+            with self.assertRaises(PublishError):
+                _request_cnb_json(
+                    "POST",
+                    "wwvo/Issuo",
+                    payload={"title": "hello"},
+                )
+
+    def test_request_cnb_json_raises_publish_error_when_token_missing(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaises(PublishError):
+                _request_cnb_json(
+                    "POST",
+                    "wwvo/Issuo",
+                    payload={"title": "hello"},
+                )
 
     def test_publish_summaries_persists_partial_success_to_publish_state(self) -> None:
         summary = _build_summary()
@@ -170,7 +273,7 @@ class PublishIssueTests(unittest.TestCase):
                 patch("fluxa.publish.datetime", _FixedPublishDatetime),
                 patch("fluxa.publish._run_gh_json", return_value={"number": 10}),
                 patch(
-                    "fluxa.publish._run_cnb",
+                    "fluxa.publish._request_cnb_json",
                     side_effect=PublishError("cnb publish failed"),
                 ),
                 patch.dict(
@@ -178,6 +281,7 @@ class PublishIssueTests(unittest.TestCase):
                     {
                         "GITHUB_REPOSITORY": "wwvo/Fluxa",
                         "CNB_REPO": "wwvo/Issuo",
+                        "CNB_TOKEN": "token-123",
                     },
                     clear=True,
                 ),
@@ -362,16 +466,6 @@ class PublishIssueTests(unittest.TestCase):
         ):
             with self.assertRaises(PublishError):
                 _run_gh(["issue", "create"])
-
-    def test_run_cnb_raises_publish_error_on_timeout(self) -> None:
-        with patch(
-            "fluxa.publish.subprocess.run",
-            side_effect=subprocess.TimeoutExpired(
-                cmd=["cnb-rs", "issue", "create"], timeout=60
-            ),
-        ):
-            with self.assertRaises(PublishError):
-                _run_cnb(["issue", "create"])
 
     def test_publish_state_file_is_json_object(self) -> None:
         summary = _build_summary()

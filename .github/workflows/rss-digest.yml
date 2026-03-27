@@ -86,17 +86,6 @@ jobs:
       - name: Run tests
         run: uv run python -m unittest discover -s tests
 
-      - name: Install cnb-rs
-        shell: bash
-        run: |
-          set -euo pipefail
-          if command -v cnb-rs >/dev/null 2>&1; then
-            cnb-rs version
-            exit 0
-          fi
-          curl -fsSL https://raw.githubusercontent.com/wwvo/cnb-rs/main/scripts/install.sh | CNB_RS_INSTALL_SOURCE=github bash
-          cnb-rs version
-
       - name: Run Fluxa
         env:
           GH_TOKEN: ${{ github.token }}

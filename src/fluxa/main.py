@@ -57,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=None,
         choices=("github", "cnb"),
-        help="Issue backend. Can be repeated. 'github' uses gh, 'cnb' uses cnb-rs.",
+        help="Issue backend. Can be repeated. 'github' uses gh, 'cnb' uses CNB API.",
     )
     parser.add_argument(
         "--repo",

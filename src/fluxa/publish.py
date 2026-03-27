@@ -5,7 +5,7 @@
 当前支持两种发布后端：
 
 - `github`：通过 `gh` 发布到 GitHub Issue
-- `cnb`：通过 `cnb-rs` 发布到 CNB Issue
+- `cnb`：通过 CNB API 发布到 CNB Issue
 """
 
 from __future__ import annotations
@@ -22,15 +22,17 @@ from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+import httpx
+
 from fluxa.models import PublishError, PublishState, RunSummary
 from fluxa.render import render_run_issue
 from fluxa.state import save_publish_state
 
 _GH_TIMEOUT_SECONDS = 60
 _CNB_TIMEOUT_SECONDS = 60
-_CNB_EMPTY_ISSUE_LIST_TEXT = "没有找到符合条件的 Issue"
 _SUPPORTED_PUBLISHERS = {"github", "cnb"}
-_GITHUB_ISSUE_URL_PATTERN = re.compile(r"/issues/(?P<number>\d+)(?:\D*)$")
+_CNB_ACCEPT_HEADER = "application/vnd.cnb.api+json"
+_CNB_USER_AGENT = "Fluxa/0.1 (+https://github.com/wwvo/Fluxa)"
 _CNB_ISSUE_URL_PATTERN = re.compile(r"/-/issues/(?P<number>\d+)(?:\D*)$")
 
 
@@ -338,6 +340,85 @@ def _update_cnb_issue(
     issue_title: str,
     issue_body_path: Path,
 ) -> None:
+    if not _has_cnb_api_token():
+        _update_cnb_issue_via_cli(repo, issue_number, issue_title, issue_body_path)
+        return
+
+    _request_cnb_empty(
+        "PATCH",
+        repo,
+        issue_number=issue_number,
+        payload={
+            "title": issue_title,
+            "body": issue_body_path.read_text(encoding="utf-8"),
+        },
+    )
+
+
+def _create_cnb_issue(
+    repo: str,
+    issue_title: str,
+    issue_body_path: Path,
+) -> int:
+    if not _has_cnb_api_token():
+        return _create_cnb_issue_via_cli(repo, issue_title, issue_body_path)
+
+    payload = _build_cnb_issue_payload(
+        issue_title=issue_title,
+        issue_body=issue_body_path.read_text(encoding="utf-8"),
+    )
+    created_issue = _request_cnb_json(
+        "POST",
+        repo,
+        payload=payload,
+    )
+    issue_number = _coerce_issue_number(created_issue.get("number"))
+    if issue_number is None:
+        raise PublishError("创建 CNB issue 失败，未返回 issue number")
+    return issue_number
+
+
+def _build_cnb_issue_payload(
+    *,
+    issue_title: str,
+    issue_body: str,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "title": issue_title,
+        "body": issue_body,
+    }
+    labels = _read_env_csv("CNB_ISSUE_LABELS")
+    if labels:
+        payload["labels"] = labels
+
+    assignees = _read_env_csv("CNB_ISSUE_ASSIGNEES")
+    if assignees:
+        payload["assignees"] = assignees
+
+    return payload
+
+
+def _build_cnb_issue_create_args() -> list[str]:
+    """兼容无 Token 场景下的 cnb-rs CLI 发布。"""
+
+    command_args: list[str] = []
+    labels = _read_env_text("CNB_ISSUE_LABELS")
+    if labels is not None:
+        command_args.extend(["--labels", labels])
+
+    assignees = _read_env_text("CNB_ISSUE_ASSIGNEES")
+    if assignees is not None:
+        command_args.extend(["--assignees", assignees])
+
+    return command_args
+
+
+def _update_cnb_issue_via_cli(
+    repo: str,
+    issue_number: int,
+    issue_title: str,
+    issue_body_path: Path,
+) -> None:
     issue_body = issue_body_path.read_text(encoding="utf-8")
     _ = _run_cnb(
         [
@@ -354,7 +435,7 @@ def _update_cnb_issue(
     )
 
 
-def _create_cnb_issue(
+def _create_cnb_issue_via_cli(
     repo: str,
     issue_title: str,
     issue_body_path: Path,
@@ -372,37 +453,16 @@ def _create_cnb_issue(
     ]
     command.extend(_build_cnb_issue_create_args())
     output = _run_cnb(command)
-    issue_number = _extract_issue_number_from_output(output, publisher="cnb")
+    issue_number = _extract_cnb_issue_number_from_cli_output(output)
     if issue_number is None:
         raise PublishError("创建 CNB issue 失败，未返回 issue number")
     return issue_number
-
-
-def _build_cnb_issue_create_args() -> list[str]:
-    """将工作流里的标签与处理人透传给 cnb-rs。"""
-
-    command_args: list[str] = []
-    labels = _read_env_text("CNB_ISSUE_LABELS")
-    if labels is not None:
-        command_args.extend(["--labels", labels])
-
-    assignees = _read_env_text("CNB_ISSUE_ASSIGNEES")
-    if assignees is not None:
-        command_args.extend(["--assignees", assignees])
-
-    return command_args
 
 
 def _as_json_mapping(value: object) -> Mapping[str, object] | None:
     if not isinstance(value, dict):
         return None
     return cast(Mapping[str, object], value)
-
-
-def _coerce_text(value: object) -> str:
-    if value is None:
-        return ""
-    return str(value)
 
 
 def _coerce_issue_number(value: object) -> int | None:
@@ -412,37 +472,6 @@ def _coerce_issue_number(value: object) -> int | None:
         return value
     if isinstance(value, str) and value.isdigit():
         return int(value)
-    return None
-
-
-def _extract_issue_number_from_output(
-    output: str,
-    *,
-    publisher: str,
-) -> int | None:
-    normalized = output.strip()
-    if not normalized:
-        return None
-
-    try:
-        payload = json.loads(normalized)
-    except json.JSONDecodeError:
-        payload = None
-    if payload is not None:
-        issue_data = _as_json_mapping(payload)
-        if issue_data is not None:
-            issue_number = _coerce_issue_number(issue_data.get("number"))
-            if issue_number is not None:
-                return issue_number
-
-    pattern = (
-        _GITHUB_ISSUE_URL_PATTERN if publisher == "github" else _CNB_ISSUE_URL_PATTERN
-    )
-    for line in reversed(normalized.splitlines()):
-        match = pattern.search(line.strip())
-        if match is None:
-            continue
-        return int(match.group("number"))
     return None
 
 
@@ -457,7 +486,6 @@ def _require_publish_state(
     return publish_state
 
 
-
 def _read_env_text(name: str) -> str | None:
     value = os.getenv(name)
     if value is None:
@@ -466,6 +494,18 @@ def _read_env_text(name: str) -> str | None:
     if not normalized:
         return None
     return normalized
+
+
+def _read_env_csv(name: str) -> list[str]:
+    raw_value = _read_env_text(name)
+    if raw_value is None:
+        return []
+    values: list[str] = []
+    for item in raw_value.split(","):
+        normalized = item.strip()
+        if normalized:
+            values.append(normalized)
+    return values
 
 
 def _resolve_display_key(display_key: str | None, run_time: datetime) -> str:
@@ -592,6 +632,133 @@ def _run_gh_json(args: list[str]) -> object:
         raise PublishError(f"gh JSON 输出解析失败: {' '.join(args)}") from exc
 
 
+def _request_cnb_json(
+    method: str,
+    repo: str,
+    *,
+    payload: Mapping[str, object],
+    issue_number: int | None = None,
+) -> Mapping[str, object]:
+    response = _request_cnb(
+        method,
+        repo,
+        payload=payload,
+        issue_number=issue_number,
+    )
+    try:
+        parsed = cast(object, response.json())
+    except json.JSONDecodeError as exc:
+        raise PublishError(
+            f"CNB API JSON 输出解析失败: {method} {response.request.url}"
+        ) from exc
+
+    payload_mapping = _as_json_mapping(parsed)
+    if payload_mapping is None:
+        raise PublishError("CNB API 返回了异常结果")
+    return payload_mapping
+
+
+def _request_cnb_empty(
+    method: str,
+    repo: str,
+    *,
+    payload: Mapping[str, object],
+    issue_number: int,
+) -> None:
+    _ = _request_cnb(
+        method,
+        repo,
+        payload=payload,
+        issue_number=issue_number,
+    )
+
+
+def _request_cnb(
+    method: str,
+    repo: str,
+    *,
+    payload: Mapping[str, object],
+    issue_number: int | None,
+) -> httpx.Response:
+    domain = _resolve_cnb_domain()
+    token = _resolve_cnb_token(domain)
+    url = _build_cnb_issue_api_url(domain, repo, issue_number=issue_number)
+    headers = {
+        "Accept": _CNB_ACCEPT_HEADER,
+        "User-Agent": _CNB_USER_AGENT,
+        "Authorization": f"Bearer {token}",
+    }
+    try:
+        with httpx.Client(
+            timeout=_CNB_TIMEOUT_SECONDS,
+            headers=headers,
+        ) as client:
+            response = client.request(
+                method,
+                url,
+                json=dict(payload),
+            )
+    except httpx.TimeoutException as exc:
+        raise PublishError(
+            f"CNB API 请求超时（>{_CNB_TIMEOUT_SECONDS} 秒）: {method} {url}"
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise PublishError(f"CNB API 请求失败: {method} {url}\n{exc}") from exc
+
+    if response.status_code >= 400:
+        error_message = response.text.strip()
+        raise PublishError(
+            f"CNB API 请求失败 (HTTP {response.status_code}):\n{error_message}"
+        )
+    return response
+
+
+def _resolve_cnb_domain() -> str:
+    return _read_env_text("CNB_DOMAIN") or "cnb.cool"
+
+
+def _resolve_cnb_token(domain: str) -> str:
+    token = _lookup_cnb_token(domain)
+    if token is None:
+        raise PublishError(
+            "缺少 CNB Token，请设置 CNB_TOKEN 或域名专用 CNB_TOKEN_* 环境变量"
+        )
+    return token
+
+
+def _lookup_cnb_token(domain: str) -> str | None:
+    domain_specific_env = f"CNB_TOKEN_{domain.replace('.', '').replace('-', '')}"
+    return _read_env_text(domain_specific_env) or _read_env_text("CNB_TOKEN")
+
+
+def _has_cnb_api_token() -> bool:
+    return _lookup_cnb_token(_resolve_cnb_domain()) is not None
+
+
+def _build_cnb_issue_api_url(
+    domain: str,
+    repo: str,
+    *,
+    issue_number: int | None,
+) -> str:
+    base_url = f"https://api.{domain}/{repo}/-/issues"
+    if issue_number is None:
+        return base_url
+    return f"{base_url}/{issue_number}"
+
+
+def _extract_cnb_issue_number_from_cli_output(output: str) -> int | None:
+    normalized = output.strip()
+    if not normalized:
+        return None
+    for line in reversed(normalized.splitlines()):
+        match = _CNB_ISSUE_URL_PATTERN.search(line.strip())
+        if match is None:
+            continue
+        return int(match.group("number"))
+    return None
+
+
 def _run_cnb(args: list[str]) -> str:
     env = os.environ.copy()
     try:
@@ -611,24 +778,3 @@ def _run_cnb(args: list[str]) -> str:
         error_message = completed.stderr.strip() or completed.stdout.strip()
         raise PublishError(f"cnb-rs 命令执行失败: {' '.join(args)}\n{error_message}")
     return completed.stdout
-
-
-def _run_cnb_json(args: list[str]) -> object:
-    output = _run_cnb(args)
-    try:
-        return cast(object, json.loads(output))
-    except json.JSONDecodeError as exc:
-        raise PublishError(f"cnb-rs JSON 输出解析失败: {' '.join(args)}") from exc
-
-
-def _run_cnb_list_json(args: list[str]) -> list[object]:
-    output = _run_cnb(args).strip()
-    if not output or output == _CNB_EMPTY_ISSUE_LIST_TEXT:
-        return []
-    try:
-        payload = json.loads(output)
-    except json.JSONDecodeError as exc:
-        raise PublishError(f"cnb-rs JSON 输出解析失败: {' '.join(args)}") from exc
-    if not isinstance(payload, list):
-        raise PublishError("cnb-rs issue list 返回了异常结果")
-    return cast(list[object], payload)
