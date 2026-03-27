@@ -163,6 +163,55 @@ class PublishIssueLookupTests(unittest.TestCase):
         self.assertEqual(mock_run_cnb_list_json.call_count, 2)
         mock_run_cnb_json.assert_called_once()
 
+    def test_cnb_upsert_create_passes_labels_and_assignees_from_env(self) -> None:
+        create_payload = {
+            "number": "21",
+            "title": "Fluxa Digest | 2026-03-27 | run cnb-3",
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            issue_body_path = Path(temp_dir) / "issue.md"
+            issue_body_path.write_text("# body\n", encoding="utf-8")
+
+            with (
+                patch.dict(
+                    "os.environ",
+                    {
+                        "CNB_ISSUE_LABELS": "RSS",
+                        "CNB_ISSUE_ASSIGNEES": "illegal_name_cnb.by9cbmyhqda,illegal_name_cnb.by9ca6eibfa",
+                    },
+                    clear=False,
+                ),
+                patch(
+                    "fluxa.publish._run_cnb_list_json",
+                    side_effect=[[], []],
+                ) as mock_run_cnb_list_json,
+                patch(
+                    "fluxa.publish._run_cnb_json",
+                    side_effect=[create_payload],
+                ) as mock_run_cnb_json,
+            ):
+                issue_number = upsert_run_issue(
+                    "cnb",
+                    "owner/repo",
+                    issue_title="Fluxa Digest | 2026-03-27 | run cnb-3",
+                    run_marker="fluxa-run:cnb-3",
+                    issue_body_path=issue_body_path,
+                    run_id="cnb-3",
+                )
+
+        self.assertEqual(issue_number, 21)
+        self.assertEqual(mock_run_cnb_list_json.call_count, 2)
+        mock_run_cnb_json.assert_called_once()
+        command = mock_run_cnb_json.call_args.args[0]
+        self.assertIn("--labels", command)
+        self.assertIn("RSS", command)
+        self.assertIn("--assignees", command)
+        self.assertIn(
+            "illegal_name_cnb.by9cbmyhqda,illegal_name_cnb.by9ca6eibfa",
+            command,
+        )
+
     def test_publish_summary_allows_dry_run_without_repo(self) -> None:
         summary = _build_summary()
 

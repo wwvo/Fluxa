@@ -397,19 +397,19 @@ def _create_cnb_issue(
     issue_body_path: Path,
 ) -> int:
     issue_body = issue_body_path.read_text(encoding="utf-8")
-    created = _run_cnb_json(
-        [
-            "issue",
-            "create",
-            "--repo",
-            repo,
-            "--json",
-            "--title",
-            issue_title,
-            "--body",
-            issue_body,
-        ]
-    )
+    command = [
+        "issue",
+        "create",
+        "--repo",
+        repo,
+        "--json",
+        "--title",
+        issue_title,
+        "--body",
+        issue_body,
+    ]
+    command.extend(_build_cnb_issue_create_args())
+    created = _run_cnb_json(command)
     created_issue = _as_json_mapping(created)
     if created_issue is None:
         raise PublishError("创建 CNB issue 失败，未返回 issue number")
@@ -417,6 +417,21 @@ def _create_cnb_issue(
     if issue_number is None:
         raise PublishError("创建 CNB issue 失败，未返回 issue number")
     return issue_number
+
+
+def _build_cnb_issue_create_args() -> list[str]:
+    """将工作流里的标签与处理人透传给 cnb-rs。"""
+
+    command_args: list[str] = []
+    labels = _read_env_text("CNB_ISSUE_LABELS")
+    if labels is not None:
+        command_args.extend(["--labels", labels])
+
+    assignees = _read_env_text("CNB_ISSUE_ASSIGNEES")
+    if assignees is not None:
+        command_args.extend(["--assignees", assignees])
+
+    return command_args
 
 
 def _match_issue_number(issue: object, marker: str) -> int | None:
@@ -462,6 +477,16 @@ def _coerce_issue_number(value: object) -> int | None:
     if isinstance(value, str) and value.isdigit():
         return int(value)
     return None
+
+
+def _read_env_text(name: str) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    return normalized
 
 
 def _resolve_repo(

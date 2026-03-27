@@ -55,7 +55,7 @@ uv run fluxa --bootstrap-only
 
 ```bash
 uv run fluxa --repo wwvo/Fluxa --run-id local-test --dry-run
-uv run fluxa --publisher cnb --repo wwvo/Fluxa --run-id local-test --dry-run
+uv run fluxa --publisher cnb --repo wwvo/Issuo --run-id local-test --dry-run
 ```
 
 `--dry-run` 会完整执行“加载配置 -> 拉取 feed -> 生成汇总 -> 渲染 issue”，但不会真正写入 issue，也不会保存状态文件。
@@ -72,7 +72,7 @@ uv run fluxa --publisher cnb --repo wwvo/Fluxa --run-id local-test --dry-run
 uv run fluxa --bootstrap-only
 uv run fluxa --state-path state/state.json --repo wwvo/Fluxa --run-id local-test
 uv run fluxa --state-path state/state.json --repo wwvo/Fluxa --run-id local-test --dry-run
-uv run fluxa --publisher cnb --state-path state/state.json --repo wwvo/Fluxa --run-id local-test
+uv run fluxa --publisher cnb --state-path state/state.json --repo wwvo/Issuo --run-id local-test
 ```
 
 ### 主要参数
@@ -410,7 +410,9 @@ feeds:
 
 - 触发方式：手动按钮 + 每 2 小时定时执行
 - 发布后端：`cnb`
-- issue 目标仓库：`wwvo/Fluxa`
+- issue 目标仓库：`wwvo/Issuo`
+- issue 标签：`RSS`
+- issue 指派：`illegal_name_cnb.by9cbmyhqda`、`illegal_name_cnb.by9ca6eibfa`
 - 状态分支：`rss-state`
 - 时区：`Asia/Shanghai`
 
@@ -420,16 +422,17 @@ feeds:
 2. 运行单元测试
 3. 安装或确认 `cnb-rs`
 4. 准备 `rss-state` 工作区；若分支不存在则自动初始化
-5. 执行 `uv run fluxa --publisher cnb --repo wwvo/Fluxa`
+5. 执行 `uv run fluxa --publisher cnb --repo wwvo/Issuo`
 6. 将新的 `state/state.json` 提交并推送到 CNB 仓库的 `rss-state` 分支
 
 ### 发布到 Issue 的方式
 
-CNB 流水线不会再调用 GitHub API，而是直接使用 `cnb-rs` 写入当前 CNB 仓库的 issue：
+CNB 流水线不会再调用 GitHub API，而是直接使用 `cnb-rs` 写入 `wwvo/Issuo` 的 issue：
 
 - issue 标题格式：`Fluxa Digest | YYYY-MM-DD | run <run_id>`
 - issue 正文同样保留 `<!-- fluxa-run:<run_id> -->` 标记
 - 同一个 `run_id` 的重跑会尝试更新原 CNB issue，而不是重复创建
+- 创建 issue 时会附带 `RSS` label，并自动指派 `illegal_name_cnb.by9cbmyhqda`、`illegal_name_cnb.by9ca6eibfa`
 
 > [!WARNING]
 > 不建议同时开启 GitHub Actions 定时任务和 CNB 定时任务。
@@ -456,7 +459,7 @@ uv run python -m unittest discover -s tests
 ```bash
 uv run fluxa --bootstrap-only
 uv run fluxa --repo wwvo/Fluxa --run-id debug-001 --dry-run
-uv run fluxa --publisher cnb --repo wwvo/Fluxa --run-id debug-cnb-001 --dry-run
+uv run fluxa --publisher cnb --repo wwvo/Issuo --run-id debug-cnb-001 --dry-run
 ```
 
 `main.py` 还会把本轮概览、恢复成功 feed 与失败 feed 输出到控制台；在 GitHub Actions 中，如果存在 `GITHUB_STEP_SUMMARY`，也会同步写入运行摘要。

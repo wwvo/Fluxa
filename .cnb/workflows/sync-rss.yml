@@ -4,7 +4,9 @@
       image: docker.cnb.cool/wwvo/build-env/python312-slim:latest
     env:
       CNB_CI: "true"
-      CNB_REPO: "wwvo/Fluxa"
+      CNB_REPO: "wwvo/Issuo"
+      CNB_ISSUE_LABELS: "RSS"
+      CNB_ISSUE_ASSIGNEES: "illegal_name_cnb.by9cbmyhqda,illegal_name_cnb.by9ca6eibfa"
       FLUXA_PUBLISHER: "cnb"
       STATE_BRANCH: "rss-state"
       TZ: "Asia/Shanghai"
