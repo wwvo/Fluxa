@@ -315,6 +315,8 @@ def _find_github_run_issue_number(repo: str, run_marker: str) -> int | None:
             [
                 "api",
                 f"repos/{repo}/issues",
+                "--method",
+                "GET",
                 "-f",
                 "state=all",
                 "-f",

@@ -68,6 +68,9 @@ class PublishIssueLookupTests(unittest.TestCase):
         self.assertEqual(issue_number, 222)
         self.assertEqual(mock_run_gh_json.call_count, 2)
         mock_run_gh.assert_called_once()
+        first_call_args = mock_run_gh_json.call_args_list[0].args[0]
+        self.assertIn("--method", first_call_args)
+        self.assertIn("GET", first_call_args)
 
     def test_github_upsert_creates_issue_when_no_existing_match(self) -> None:
         first_page = [
