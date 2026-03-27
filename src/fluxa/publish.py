@@ -16,7 +16,7 @@ import subprocess
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -60,6 +60,7 @@ def publish_summary(
     repo: str | None,
     timezone_name: str,
     run_id: str | None,
+    display_key: str | None,
     dry_run: bool,
 ) -> PublishResult:
     publisher_name = _resolve_publisher(publisher)
@@ -73,6 +74,7 @@ def publish_summary(
         summary,
         timezone_name=timezone_name,
         run_id=run_id,
+        display_key=display_key,
     )
 
     if dry_run:
@@ -114,16 +116,19 @@ def _build_issue_draft(
     *,
     timezone_name: str,
     run_id: str | None,
+    display_key: str | None,
 ) -> _IssueDraft:
     resolved_run_id = _resolve_run_id(run_id)
     timezone = _load_timezone(timezone_name)
     run_time = datetime.now(timezone).replace(microsecond=0)
     issue_date = run_time.date().isoformat()
-    issue_title = f"Fluxa Digest | {issue_date} | run {resolved_run_id}"
+    resolved_display_key = _resolve_display_key(display_key, run_time)
+    issue_title = f"Fluxa Digest | {issue_date} | {resolved_display_key}"
     issue_body = render_run_issue(
         templates_dir,
         summary,
         issue_title=issue_title,
+        display_key=resolved_display_key,
         timezone_name=timezone_name,
         timezone=timezone,
         run_id=resolved_run_id,
@@ -481,6 +486,35 @@ def _coerce_issue_number(value: object) -> int | None:
 
 def _read_env_text(name: str) -> str | None:
     value = os.getenv(name)
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    return normalized
+
+
+def _resolve_display_key(display_key: str | None, run_time: datetime) -> str:
+    resolved = _normalize_text(display_key) or _read_env_text("FLUXA_DISPLAY_KEY")
+    if resolved is not None:
+        return resolved
+    return _build_time_window_display_key(run_time)
+
+
+def _build_time_window_display_key(run_time: datetime) -> str:
+    # 标题按固定 2 小时窗口展示，便于人工浏览，不影响 run_id 幂等标记。
+    window_start_hour = (run_time.hour // 2) * 2
+    window_start = run_time.replace(
+        hour=window_start_hour,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    window_end = window_start + timedelta(hours=2)
+    return f"{window_start:%H:%M}-{window_end:%H:%M}"
+
+
+def _normalize_text(value: str | None) -> str | None:
     if value is None:
         return None
     normalized = value.strip()

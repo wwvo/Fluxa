@@ -73,6 +73,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Unique run identifier used for issue idempotency.",
     )
     parser.add_argument(
+        "--display-key",
+        default=None,
+        help="Human-readable issue title suffix. Defaults to the current 2-hour time window.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Render and execute the flow without saving state or publishing issue.",
@@ -117,6 +122,7 @@ def main() -> int:
                 repo=args.repo,
                 timezone_name=args.timezone,
                 run_id=args.run_id,
+                display_key=args.display_key,
                 dry_run=args.dry_run,
             )
 

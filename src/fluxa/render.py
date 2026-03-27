@@ -23,6 +23,7 @@ def render_run_issue(
     summary: RunSummary,
     *,
     issue_title: str,
+    display_key: str,
     timezone_name: str,
     timezone: ZoneInfo,
     run_id: str,
@@ -33,6 +34,7 @@ def render_run_issue(
         return template.render(
             run_marker=f"fluxa-run:{run_id}",
             issue_title=issue_title,
+            display_key=display_key,
             run_id=run_id,
             run_time=run_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
             timezone_name=timezone_name,

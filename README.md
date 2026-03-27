@@ -26,6 +26,7 @@
 - 对 `406 / 415` 协商类错误会自动做一次“宽松请求头”重试。
 - 某个 feed 从失败恢复时，会临时放大抓取窗口，尽量补回停机期间漏掉的文章。
 - 支持 `github / cnb` 双发布后端：GitHub 使用 `gh`，CNB 使用 `cnb-rs`。
+- issue 标题默认使用当前 2 小时抓取窗口，例如 `08:00-10:00`，比纯数字执行 ID 更易读。
 - 同一次调度重跑会命中同一个 `run_id` 对应的 issue，避免重复创建。
 - 同时提供 GitHub Actions 与 CNB 云原生构建流水线，方便按仓库托管位置选择运行环境。
 
@@ -386,8 +387,8 @@ feeds:
 
 项目不再往单个 issue 下追加 comment，而是为每次运行维护一篇独立 issue：
 
-- issue 标题格式：`Fluxa Digest | YYYY-MM-DD | run <run_id>`
-- issue 正文中会写入 `<!-- fluxa-run:<run_id> -->` 作为幂等标记
+- issue 标题格式：`Fluxa Digest | YYYY-MM-DD | HH:00-HH:00`
+- issue 正文中会保留 `Run ID`，并写入 `<!-- fluxa-run:<run_id> -->` 作为幂等标记
 - 同一个 `run_id` 重跑时，会更新原 issue，而不是新建重复 issue
 
 ### 仓库设置要求
@@ -429,8 +430,8 @@ feeds:
 
 CNB 流水线不会再调用 GitHub API，而是直接使用 `cnb-rs` 写入 `wwvo/Issuo` 的 issue：
 
-- issue 标题格式：`Fluxa Digest | YYYY-MM-DD | run <run_id>`
-- issue 正文同样保留 `<!-- fluxa-run:<run_id> -->` 标记
+- issue 标题格式：`Fluxa Digest | YYYY-MM-DD | HH:00-HH:00`
+- issue 正文同样会保留 `Run ID`，并写入 `<!-- fluxa-run:<run_id> -->` 标记
 - 同一个 `run_id` 的重跑会尝试更新原 CNB issue，而不是重复创建
 - 创建 issue 时会附带 `RSS` label，并自动指派 `illegal_name_cnb.by9cbmyhqda`、`illegal_name_cnb.by9ca6eibfa`
 

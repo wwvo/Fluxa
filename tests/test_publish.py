@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -26,6 +27,12 @@ def _build_summary() -> RunSummary:
         bootstrap_mode=False,
         results=[],
     )
+
+
+class _FixedPublishDatetime(datetime):
+    @classmethod
+    def now(cls, tz=None):  # type: ignore[override]
+        return datetime(2026, 3, 27, 9, 15, 0, tzinfo=tz)
 
 
 class PublishIssueLookupTests(unittest.TestCase):
@@ -215,7 +222,10 @@ class PublishIssueLookupTests(unittest.TestCase):
     def test_publish_summary_allows_dry_run_without_repo(self) -> None:
         summary = _build_summary()
 
-        with patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"):
+        with (
+            patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
+            patch("fluxa.publish.datetime", _FixedPublishDatetime),
+        ):
             with patch.dict("os.environ", {}, clear=True):
                 result = publish_summary(
                     summary,
@@ -224,17 +234,22 @@ class PublishIssueLookupTests(unittest.TestCase):
                     repo=None,
                     timezone_name="Asia/Shanghai",
                     run_id="dry-run-123",
+                    display_key=None,
                     dry_run=True,
                 )
 
         self.assertEqual(result.publisher, "github")
         self.assertIsNone(result.repo)
         self.assertIsNone(result.issue_number)
+        self.assertEqual(result.issue_title, "Fluxa Digest | 2026-03-27 | 08:00-10:00")
 
     def test_publish_summary_supports_cnb_dry_run_without_repo(self) -> None:
         summary = _build_summary()
 
-        with patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"):
+        with (
+            patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
+            patch("fluxa.publish.datetime", _FixedPublishDatetime),
+        ):
             with patch.dict("os.environ", {}, clear=True):
                 result = publish_summary(
                     summary,
@@ -243,12 +258,37 @@ class PublishIssueLookupTests(unittest.TestCase):
                     repo=None,
                     timezone_name="Asia/Shanghai",
                     run_id="dry-run-cnb",
+                    display_key=None,
                     dry_run=True,
                 )
 
         self.assertEqual(result.publisher, "cnb")
         self.assertIsNone(result.repo)
         self.assertIsNone(result.issue_number)
+        self.assertEqual(result.issue_title, "Fluxa Digest | 2026-03-27 | 08:00-10:00")
+
+    def test_publish_summary_supports_explicit_display_key(self) -> None:
+        summary = _build_summary()
+
+        with (
+            patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
+            patch("fluxa.publish.datetime", _FixedPublishDatetime),
+        ):
+            with patch.dict("os.environ", {}, clear=True):
+                result = publish_summary(
+                    summary,
+                    Path("."),
+                    publisher="github",
+                    repo=None,
+                    timezone_name="Asia/Shanghai",
+                    run_id="dry-run-display",
+                    display_key="Morning Window",
+                    dry_run=True,
+                )
+
+        self.assertEqual(
+            result.issue_title, "Fluxa Digest | 2026-03-27 | Morning Window"
+        )
 
     def test_publish_summary_raises_publish_error_when_template_missing(self) -> None:
         summary = _build_summary()
@@ -264,6 +304,7 @@ class PublishIssueLookupTests(unittest.TestCase):
                         repo=None,
                         timezone_name="Asia/Shanghai",
                         run_id="dry-run-456",
+                        display_key=None,
                         dry_run=True,
                     )
 
