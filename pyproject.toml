@@ -8,6 +8,7 @@ dependencies = [
     "feedparser>=6.0.11",
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
+    "markdown-it-py>=3.0.0",
     "python-dateutil>=2.9.0.post0",
     "pyyaml>=6.0.2",
     "tzdata>=2025.2",

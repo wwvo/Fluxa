@@ -28,6 +28,7 @@ def render_run_issue(
     timezone: ZoneInfo,
     run_id: str,
     run_time: datetime,
+    site_links: dict[str, str] | None = None,
 ) -> str:
     try:
         template = _build_environment(templates_dir).get_template(_RUN_ISSUE_TEMPLATE)
@@ -44,7 +45,7 @@ def render_run_issue(
             new_count=summary.new_count,
             error_count=summary.error_count,
             not_modified_count=summary.not_modified_count,
-            grouped_entries=_group_entries(summary, timezone),
+            grouped_entries=_group_entries(summary, timezone, site_links),
             errors=[
                 {
                     "feed_id": result.feed.id,
@@ -71,7 +72,11 @@ def _build_environment(templates_dir: Path) -> Environment:
     )
 
 
-def _group_entries(summary: RunSummary, timezone: ZoneInfo) -> list[dict[str, object]]:
+def _group_entries(
+    summary: RunSummary,
+    timezone: ZoneInfo,
+    site_links: dict[str, str] | None = None,
+) -> list[dict[str, object]]:
     grouped: OrderedDict[str, list[dict[str, str | None]]] = OrderedDict()
     titles: dict[str, str] = {}
 
@@ -84,6 +89,7 @@ def _group_entries(summary: RunSummary, timezone: ZoneInfo) -> list[dict[str, ob
                 "url": entry.url,
                 "published_at": _format_entry_time(entry.published_at, timezone),
                 "summary": entry.summary,
+                "site_link": site_links.get(entry.entry_id) if site_links else None,
             }
         )
 

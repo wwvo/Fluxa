@@ -1,0 +1,39 @@
+{% extends "base.html.j2" %}
+
+{% set page_title = "文章列表" %}
+{% set page_description = "Fluxa Digest 文章列表" %}
+
+{% block content %}
+  <section class="hero-card">
+    <p class="eyebrow">Fluxa Digest</p>
+    <h1>文章列表</h1>
+    <p class="hero-copy">
+      由 Fluxa 自动抓取并发布的 RSS 文章摘要。
+    </p>
+  </section>
+
+  <section class="doc-grid">
+    {% for entry in entries %}
+      <article class="doc-card">
+        <div class="doc-card-head">
+          <h2><a href="{{ entry.page_url }}">{{ entry.title }}</a></h2>
+          <span class="doc-meta">{{ entry.feed_title }}{% if entry.published_at %} · {{ entry.published_at }}{% endif %}</span>
+        </div>
+        {% if entry.summary %}
+          <p class="doc-summary">{{ entry.summary }}</p>
+        {% endif %}
+        <div class="doc-card-actions">
+          <a class="button-link" href="{{ entry.page_url }}">阅读</a>
+          {% if entry.url %}
+            <a class="text-link" href="{{ entry.url }}">查看原文</a>
+          {% endif %}
+        </div>
+      </article>
+    {% else %}
+      <article class="doc-card doc-card-empty">
+        <h2>暂无文章</h2>
+        <p class="doc-summary">本轮没有新增 RSS 文章。</p>
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}

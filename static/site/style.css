@@ -1,0 +1,305 @@
+:root {
+  --bg: #f4efe6;
+  --panel: rgba(255, 252, 246, 0.9);
+  --panel-strong: #fffdf8;
+  --border: rgba(31, 36, 32, 0.12);
+  --ink: #1f2420;
+  --muted: #5f665e;
+  --accent: #2f6b57;
+  --accent-strong: #1f4f40;
+  --accent-soft: rgba(47, 107, 87, 0.12);
+  --warm: #b85c38;
+  --shadow: 0 20px 50px rgba(31, 36, 32, 0.08);
+  --radius-lg: 26px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --content-width: 980px;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(184, 92, 56, 0.14), transparent 28rem),
+    linear-gradient(180deg, #fbf7ef 0%, var(--bg) 100%);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  line-height: 1.7;
+}
+
+a {
+  color: inherit;
+}
+
+.page-shell {
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 0 auto;
+  padding: 1.5rem 0 4rem;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.25rem 0;
+}
+
+.brand {
+  font-family: "IBM Plex Mono", "Cascadia Code", monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.top-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.page-main {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.hero-card,
+.doc-card,
+.markdown-body,
+.source-panel {
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.hero-card {
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+}
+
+.hero-card-compact {
+  padding: 1.5rem 1.75rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--warm);
+  font-family: "IBM Plex Mono", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero-card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.hero-copy {
+  max-width: 48rem;
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.hero-actions,
+.doc-card-actions,
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.hero-actions {
+  margin-top: 1.25rem;
+}
+
+.meta-row {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.doc-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.doc-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+  border-radius: var(--radius-md);
+}
+
+.doc-card-head {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.doc-card-head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.doc-card-head h2 a {
+  text-decoration: none;
+}
+
+.doc-card-head h2 a:hover {
+  color: var(--accent);
+}
+
+.doc-meta,
+.doc-summary {
+  color: var(--muted);
+}
+
+.doc-summary {
+  margin: 0;
+}
+
+.doc-card-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.button-link,
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.button-link {
+  padding: 0.72rem 1rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fbfaf7;
+}
+
+.button-link:hover {
+  background: var(--accent-strong);
+}
+
+.text-link {
+  color: var(--accent-strong);
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.markdown-body {
+  padding: clamp(1.4rem, 2vw, 2.25rem);
+  border-radius: var(--radius-lg);
+}
+
+.markdown-body :first-child {
+  margin-top: 0;
+}
+
+.markdown-body :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  line-height: 1.15;
+  margin-top: 1.8em;
+  margin-bottom: 0.55em;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote {
+  margin: 0 0 1rem;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.35rem;
+}
+
+.markdown-body a {
+  color: var(--accent-strong);
+  text-decoration-thickness: 0.08em;
+}
+
+.markdown-body code,
+.source-panel code {
+  font-family: "IBM Plex Mono", "Cascadia Code", monospace;
+}
+
+.markdown-body code {
+  padding: 0.14rem 0.35rem;
+  border-radius: 0.4rem;
+  background: var(--accent-soft);
+  font-size: 0.94em;
+}
+
+.markdown-body pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: #1c211d;
+  color: #f8f5ef;
+}
+
+.markdown-body blockquote {
+  padding: 0.15rem 1rem;
+  border-left: 4px solid var(--warm);
+  background: rgba(184, 92, 56, 0.06);
+}
+
+.source-panel {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.source-panel pre {
+  margin: 0;
+  overflow: auto;
+  padding: 1.5rem;
+  background: #161a18;
+  color: #eef2eb;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    width: min(calc(100% - 1rem), var(--content-width));
+    padding-top: 1rem;
+  }
+
+  .site-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-card {
+    padding: 1.4rem;
+  }
+}

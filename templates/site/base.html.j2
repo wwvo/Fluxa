@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if page_title %}{{ page_title }} · {% endif %}{{ site_title }}</title>
+    <meta name="description" content="{{ page_description or site_title }}">
+    <link rel="stylesheet" href="{{ asset_url }}">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="{{ home_url }}">{{ site_title }}</a>
+        <nav class="top-actions">
+          {% block top_actions %}{% endblock %}
+        </nav>
+      </header>
+      <main class="page-main">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>

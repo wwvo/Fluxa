@@ -10,6 +10,8 @@
       FLUXA_PUBLISHER: "cnb"
       STATE_BRANCH: "rss-state"
       TZ: "Asia/Shanghai"
+      SITE_URL: "${SITE_URL:-}"
+      SITE_BASE_URL: "${SITE_BASE_URL:-/}"
     stages:
       - name: install-python-deps
         script: uv sync --frozen
@@ -78,6 +80,30 @@
           if [ -f "$SUMMARY_FILE" ]; then
             cat "$SUMMARY_FILE"
           fi
+      - name: deploy-digest-site
+        script: |
+          set -eu
+          if [ -z "${SITE_URL:-}" ] || [ -z "${DEPLOY_HOST:-}" ]; then
+            echo "SITE_URL 或 DEPLOY_HOST 未配置，跳过静态站部署"
+            exit 0
+          fi
+          if [ ! -d dist ] || [ ! -f dist/index.html ]; then
+            echo "dist 目录不存在或为空，跳过部署"
+            exit 0
+          fi
+          deploy_port="${DEPLOY_PORT:-22}"
+          RELEASE_ID="$(date -u +%Y%m%d-%H%M%S)"
+          DEPLOY_BASE_DIR="${DEPLOY_BASE_DIR:-/srv/fluxa}"
+          release_dir="${DEPLOY_BASE_DIR}/releases/${RELEASE_ID}"
+          ssh -p "$deploy_port" -o StrictHostKeyChecking=no \
+            "${DEPLOY_USER:-deploy}@${DEPLOY_HOST}" "mkdir -p '$release_dir'"
+          rsync -az --delete \
+            -e "ssh -p $deploy_port -o StrictHostKeyChecking=no" \
+            dist/ "${DEPLOY_USER:-deploy}@${DEPLOY_HOST}:$release_dir/"
+          ssh -p "$deploy_port" -o StrictHostKeyChecking=no \
+            "${DEPLOY_USER:-deploy}@${DEPLOY_HOST}" \
+            "bash -s -- '$DEPLOY_BASE_DIR' '$RELEASE_ID' 5" \
+            < scripts/promote_release.sh
       - name: push-state-branch
         script: |
           set -eu
