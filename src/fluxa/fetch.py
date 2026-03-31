@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from threading import BoundedSemaphore
 from time import sleep
@@ -384,7 +384,7 @@ def _resolve_feed_source_state(
     source_state = source_states.get(source_url)
     if source_state is not None:
         return source_state
-    return _clone_source_state(
+    return replace(
         feed_state.get_source_state(source_url, primary_url=primary_url)
     )
 
@@ -646,20 +646,10 @@ def _resolve_primary_cache(
 
 def _clone_source_states(feed_state: FeedState) -> dict[str, FeedSourceState]:
     return {
-        source_url: _clone_source_state(source_state)
+        source_url: replace(source_state)
         for source_url, source_state in feed_state.sources.items()
     }
 
-
-def _clone_source_state(source_state: FeedSourceState) -> FeedSourceState:
-    return FeedSourceState(
-        etag=source_state.etag,
-        last_modified=source_state.last_modified,
-        last_checked_at=source_state.last_checked_at,
-        last_success_at=source_state.last_success_at,
-        last_http_status=source_state.last_http_status,
-        last_error=source_state.last_error,
-    )
 
 
 def _resolve_last_attempt_details(
