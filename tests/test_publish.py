@@ -16,7 +16,6 @@ from fluxa.publish import (
     _request_cnb_json,
     _run_gh,
     publish_summaries,
-    publish_summary,
     upsert_run_issue,
 )
 from fluxa.state import load_publish_state
@@ -321,16 +320,16 @@ class PublishIssueTests(unittest.TestCase):
             patch("fluxa.publish.datetime", _FixedPublishDatetime),
         ):
             with patch.dict("os.environ", {}, clear=True):
-                result = publish_summary(
+                result = publish_summaries(
                     summary,
                     Path("."),
-                    publisher="github",
+                    publishers=("github",),
                     repo=None,
                     timezone_name="Asia/Shanghai",
                     run_id="dry-run-123",
                     display_key=None,
                     dry_run=True,
-                )
+                )[0]
 
         self.assertEqual(result.publisher, "github")
         self.assertIsNone(result.repo)
@@ -347,16 +346,16 @@ class PublishIssueTests(unittest.TestCase):
             patch("fluxa.publish.datetime", _FixedPublishDatetime),
         ):
             with patch.dict("os.environ", {}, clear=True):
-                result = publish_summary(
+                result = publish_summaries(
                     summary,
                     Path("."),
-                    publisher="cnb",
+                    publishers=("cnb",),
                     repo=None,
                     timezone_name="Asia/Shanghai",
                     run_id="dry-run-cnb",
                     display_key=None,
                     dry_run=True,
-                )
+                )[0]
 
         self.assertEqual(result.publisher, "cnb")
         self.assertIsNone(result.repo)
@@ -375,16 +374,16 @@ class PublishIssueTests(unittest.TestCase):
             patch("fluxa.publish.datetime", _FixedPublishDatetime),
         ):
             with patch.dict("os.environ", {}, clear=True):
-                result = publish_summary(
+                result = publish_summaries(
                     summary,
                     Path("."),
-                    publisher="github",
+                    publishers=("github",),
                     repo=None,
                     timezone_name="Asia/Shanghai",
                     run_id="dry-run-display",
                     display_key="Morning Window",
                     dry_run=True,
-                )
+                )[0]
 
         self.assertEqual(
             result.issue_title, "Fluxa Digest | 2026-03-27 | run dry-run-display"
@@ -446,10 +445,10 @@ class PublishIssueTests(unittest.TestCase):
             templates_dir = Path(temp_dir)
             with patch.dict("os.environ", {}, clear=True):
                 with self.assertRaises(PublishError):
-                    publish_summary(
+                    publish_summaries(
                         summary,
                         templates_dir,
-                        publisher="github",
+                        publishers=("github",),
                         repo=None,
                         timezone_name="Asia/Shanghai",
                         run_id="dry-run-456",

@@ -58,33 +58,6 @@ class _IssueDraft:
     window_key: str
 
 
-def publish_summary(
-    summary: RunSummary,
-    templates_dir: Path,
-    *,
-    publisher: str = "github",
-    repo: str | None,
-    timezone_name: str,
-    run_id: str | None,
-    display_key: str | None,
-    dry_run: bool,
-    publish_state: PublishState | None = None,
-    publish_state_path: Path | None = None,
-) -> PublishResult:
-    return publish_summaries(
-        summary,
-        templates_dir,
-        publishers=(publisher,),
-        repo=repo,
-        timezone_name=timezone_name,
-        run_id=run_id,
-        display_key=display_key,
-        dry_run=dry_run,
-        publish_state=publish_state,
-        publish_state_path=publish_state_path,
-    )[0]
-
-
 def publish_summaries(
     summary: RunSummary,
     templates_dir: Path,
