@@ -12,7 +12,7 @@ from typing import Any
 
 import yaml
 
-from fluxa.models import AppConfig, ConfigError, FeedConfig, FeedDefaults
+from fluxa.models import AppConfig, ConfigError, FeedConfig, FeedDefaults, _is_strict_int
 from fluxa.rsshub import resolve_fallback_urls
 
 
@@ -185,5 +185,3 @@ def _read_int(
     return value
 
 
-def _is_strict_int(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
