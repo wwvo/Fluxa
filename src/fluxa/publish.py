@@ -603,25 +603,7 @@ def _load_timezone(timezone_name: str) -> ZoneInfo:
 
 
 def _run_gh(args: list[str]) -> str:
-    env = os.environ.copy()
-    env["GH_PAGER"] = "cat"
-    try:
-        completed = subprocess.run(
-            ["gh", *args],
-            check=False,
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=_GH_TIMEOUT_SECONDS,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise PublishError(
-            f"gh 命令执行超时（>{_GH_TIMEOUT_SECONDS} 秒）: {' '.join(args)}"
-        ) from exc
-    if completed.returncode != 0:
-        error_message = completed.stderr.strip() or completed.stdout.strip()
-        raise PublishError(f"gh 命令执行失败: {' '.join(args)}\n{error_message}")
-    return completed.stdout
+    return _run_cli("gh", args, timeout=_GH_TIMEOUT_SECONDS, extra_env={"GH_PAGER": "cat"})
 
 
 def _run_gh_json(args: list[str]) -> object:
@@ -760,21 +742,33 @@ def _extract_cnb_issue_number_from_cli_output(output: str) -> int | None:
 
 
 def _run_cnb(args: list[str]) -> str:
+    return _run_cli("cnb-rs", args, timeout=_CNB_TIMEOUT_SECONDS)
+
+
+def _run_cli(
+    program: str,
+    args: list[str],
+    *,
+    timeout: int,
+    extra_env: dict[str, str] | None = None,
+) -> str:
     env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
     try:
         completed = subprocess.run(
-            ["cnb-rs", *args],
+            [program, *args],
             check=False,
             capture_output=True,
             text=True,
             env=env,
-            timeout=_CNB_TIMEOUT_SECONDS,
+            timeout=timeout,
         )
     except subprocess.TimeoutExpired as exc:
         raise PublishError(
-            f"cnb-rs 命令执行超时（>{_CNB_TIMEOUT_SECONDS} 秒）: {' '.join(args)}"
+            f"{program} 命令执行超时（>{timeout} 秒）: {' '.join(args)}"
         ) from exc
     if completed.returncode != 0:
         error_message = completed.stderr.strip() or completed.stdout.strip()
-        raise PublishError(f"cnb-rs 命令执行失败: {' '.join(args)}\n{error_message}")
+        raise PublishError(f"{program} 命令执行失败: {' '.join(args)}\n{error_message}")
     return completed.stdout
