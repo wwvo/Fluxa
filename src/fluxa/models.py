@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 
@@ -513,7 +514,7 @@ class PublishState:
         self.latest_window_key = normalized_window_key
 
 
-@dataclass(slots=True)
+@dataclass
 class RunSummary:
     """一次完整轮询的汇总结果。"""
 
@@ -521,31 +522,31 @@ class RunSummary:
     bootstrap_mode: bool
     results: list[FeedPollResult]
 
-    @property
+    @cached_property
     def checked_count(self) -> int:
         return len(self.results)
 
-    @property
+    @cached_property
     def error_count(self) -> int:
         return sum(1 for result in self.results if result.status == "error")
 
-    @property
+    @cached_property
     def not_modified_count(self) -> int:
         return sum(1 for result in self.results if result.status == "not-modified")
 
-    @property
+    @cached_property
     def new_entries(self) -> list[NormalizedEntry]:
         return [entry for result in self.results for entry in result.new_entries]
 
-    @property
+    @cached_property
     def new_count(self) -> int:
         return len(self.new_entries)
 
-    @property
+    @cached_property
     def failed_results(self) -> list[FeedPollResult]:
         return [result for result in self.results if result.status == "error"]
 
-    @property
+    @cached_property
     def fallback_recovered_results(self) -> list[FeedPollResult]:
         return [
             result
@@ -553,7 +554,7 @@ class RunSummary:
             if result.status != "error" and result.used_fallback
         ]
 
-    @property
+    @cached_property
     def recovered_results(self) -> list[FeedPollResult]:
         return [
             result
