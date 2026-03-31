@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fluxa.main import _build_recovery_sections, _format_attempts, _write_step_summary
+from fluxa.report import build_recovery_sections, format_attempts, write_step_summary
 from fluxa.models import (
     AppConfig,
     FeedAttemptResult,
@@ -89,7 +89,7 @@ class StepSummaryTests(unittest.TestCase):
             ],
         )
 
-        sections = _build_recovery_sections(summary)
+        sections = build_recovery_sections(summary)
 
         self.assertEqual(
             [(section.console_title, section.markdown_title) for section in sections],
@@ -125,7 +125,7 @@ class StepSummaryTests(unittest.TestCase):
             original_step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
             os.environ["GITHUB_STEP_SUMMARY"] = str(summary_path)
             try:
-                _write_step_summary(
+                write_step_summary(
                     summary,
                     config_path="feeds/feeds.yml",
                     state_path="state/state.json",
@@ -191,7 +191,7 @@ class StepSummaryTests(unittest.TestCase):
             error="status 415",
         )
 
-        attempt_text = _format_attempts(result)
+        attempt_text = format_attempts(result)
 
         self.assertIn("条件请求，已切换宽松请求头重试", attempt_text)
         self.assertIn("宽松请求头", attempt_text)
