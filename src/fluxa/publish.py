@@ -105,8 +105,6 @@ def publish_summaries(
         publish_state,
         publish_state_path,
     )
-    if publish_state_path is None:
-        raise PublishError("缺少发布账本路径，请传入 publish_state_path")
 
     results: list[PublishResult] = []
     with tempfile.TemporaryDirectory(prefix="fluxa-") as temp_dir:
