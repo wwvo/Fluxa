@@ -19,18 +19,7 @@ from fluxa.publish import (
     upsert_run_issue,
 )
 from fluxa.state import load_publish_state
-
-
-def _build_summary() -> RunSummary:
-    return RunSummary(
-        config=AppConfig(
-            path=Path("feeds/feeds.yml"),
-            defaults=FeedDefaults(),
-            feeds=(),
-        ),
-        bootstrap_mode=False,
-        results=[],
-    )
+from tests.helpers import build_summary
 
 
 class _FixedPublishDatetime(datetime):
@@ -261,7 +250,7 @@ class PublishIssueTests(unittest.TestCase):
                 )
 
     def test_publish_summaries_persists_partial_success_to_publish_state(self) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             publish_state_path = Path(temp_dir) / "publish-state.json"
@@ -313,7 +302,7 @@ class PublishIssueTests(unittest.TestCase):
         )
 
     def test_publish_summary_allows_dry_run_without_repo(self) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with (
             patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
@@ -339,7 +328,7 @@ class PublishIssueTests(unittest.TestCase):
         )
 
     def test_publish_summary_supports_cnb_dry_run_without_repo(self) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with (
             patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
@@ -367,7 +356,7 @@ class PublishIssueTests(unittest.TestCase):
     def test_publish_summary_keeps_run_id_title_when_display_key_is_explicit(
         self,
     ) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with (
             patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
@@ -390,7 +379,7 @@ class PublishIssueTests(unittest.TestCase):
         )
 
     def test_publish_summaries_supports_multiple_dry_run_publishers(self) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with (
             patch("fluxa.publish.render_run_issue", return_value="# dry-run issue"),
@@ -424,7 +413,7 @@ class PublishIssueTests(unittest.TestCase):
     def test_publish_summaries_rejects_repo_override_for_multiple_publishers(
         self,
     ) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with self.assertRaises(PublishError):
             publish_summaries(
@@ -439,7 +428,7 @@ class PublishIssueTests(unittest.TestCase):
             )
 
     def test_publish_summary_raises_publish_error_when_template_missing(self) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             templates_dir = Path(temp_dir)
@@ -467,7 +456,7 @@ class PublishIssueTests(unittest.TestCase):
                 _run_gh(["issue", "create"])
 
     def test_publish_state_file_is_json_object(self) -> None:
-        summary = _build_summary()
+        summary = build_summary()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             publish_state_path = Path(temp_dir) / "publish-state.json"

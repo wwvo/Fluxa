@@ -8,19 +8,7 @@ import httpx
 
 from fluxa.fetch import poll_feed, poll_feeds
 from fluxa.models import FeedConfig, FeedPollResult, FeedState
-
-
-def _build_feed(feed_id: str, url: str) -> FeedConfig:
-    return FeedConfig(
-        id=feed_id,
-        url=url,
-        fallback_urls=(),
-        title=f"{feed_id} title",
-        enabled=True,
-        timeout_seconds=20,
-        max_entries_per_feed=20,
-        max_seen_ids=300,
-    )
+from tests.helpers import build_feed
 
 
 def _build_response(url: str, content: bytes) -> httpx.Response:
@@ -44,7 +32,7 @@ def _build_http_status_error(url: str, status_code: int) -> httpx.HTTPStatusErro
 
 class FetchIsolationTests(unittest.TestCase):
     def test_poll_feed_converts_parse_exception_to_error_result(self) -> None:
-        feed = _build_feed("broken", "https://example.com/broken.xml")
+        feed = build_feed("broken", "https://example.com/broken.xml")
         previous_state = FeedState(
             seen_ids=["entry-1"],
             last_success_at="2026-03-26T00:00:00+00:00",
@@ -85,8 +73,8 @@ class FetchIsolationTests(unittest.TestCase):
         self.assertEqual(result.next_state.seen_ids, previous_state.seen_ids)
 
     def test_poll_feeds_keeps_other_feeds_running_after_parse_exception(self) -> None:
-        broken_feed = _build_feed("broken", "https://example.com/broken.xml")
-        healthy_feed = _build_feed("healthy", "https://example.com/healthy.xml")
+        broken_feed = build_feed("broken", "https://example.com/broken.xml")
+        healthy_feed = build_feed("healthy", "https://example.com/healthy.xml")
 
         def fake_get(
             client: httpx.Client,
@@ -126,8 +114,8 @@ class FetchIsolationTests(unittest.TestCase):
         self.assertEqual(results[1].status, "ok")
 
     def test_poll_feeds_keeps_other_feeds_running_after_worker_exception(self) -> None:
-        broken_feed = _build_feed("broken", "https://example.com/broken.xml")
-        healthy_feed = _build_feed("healthy", "https://example.com/healthy.xml")
+        broken_feed = build_feed("broken", "https://example.com/broken.xml")
+        healthy_feed = build_feed("healthy", "https://example.com/healthy.xml")
         state_by_feed = {
             broken_feed.id: FeedState(last_success_at="2026-03-26T00:00:00+00:00"),
             healthy_feed.id: FeedState(),
@@ -181,7 +169,7 @@ class FetchIsolationTests(unittest.TestCase):
         )
 
     def test_poll_feed_retries_415_with_relaxed_headers_and_succeeds(self) -> None:
-        feed = _build_feed("negotiation", "https://example.com/feed.xml")
+        feed = build_feed("negotiation", "https://example.com/feed.xml")
         previous_state = FeedState(
             etag='"etag-old"',
             last_modified="Wed, 01 Jan 2025 00:00:00 GMT",
@@ -243,7 +231,7 @@ class FetchIsolationTests(unittest.TestCase):
         self.assertEqual(seen_request_headers[1]["Accept"], "*/*")
 
     def test_poll_feed_clears_conditional_cache_after_repeated_415(self) -> None:
-        feed = _build_feed("negotiation-stuck", "https://example.com/feed.xml")
+        feed = build_feed("negotiation-stuck", "https://example.com/feed.xml")
         previous_state = FeedState(
             etag='"etag-old"',
             last_modified="Wed, 01 Jan 2025 00:00:00 GMT",

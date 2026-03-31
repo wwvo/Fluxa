@@ -16,18 +16,7 @@ from fluxa.models import (
     RunSummary,
 )
 from fluxa.publish import PublishResult
-
-
-def _build_summary() -> RunSummary:
-    return RunSummary(
-        config=AppConfig(
-            path=Path("feeds/feeds.yml"),
-            defaults=FeedDefaults(),
-            feeds=(),
-        ),
-        bootstrap_mode=False,
-        results=[],
-    )
+from tests.helpers import build_summary
 
 
 class StepSummaryTests(unittest.TestCase):
@@ -100,7 +89,7 @@ class StepSummaryTests(unittest.TestCase):
         )
 
     def test_dry_run_summary_does_not_render_issue_none(self) -> None:
-        summary = _build_summary()
+        summary = build_summary()
         publish_results = [
             PublishResult(
                 publisher="github",
