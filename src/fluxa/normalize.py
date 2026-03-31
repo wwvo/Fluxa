@@ -21,6 +21,7 @@ from fluxa.models import FeedConfig, NormalizedEntry
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
+_MAX_SUMMARY_LENGTH = 280
 
 
 def normalize_entries(
@@ -95,11 +96,11 @@ def _extract_summary(raw_entry: Mapping[str, Any]) -> str | None:
     # 优先取 feed 已经整理好的摘要，再回退到 description / content。
     summary = _clean_text(raw_entry.get("summary"))
     if summary:
-        return summary[:280]
+        return summary[:_MAX_SUMMARY_LENGTH]
 
     description = _clean_text(raw_entry.get("description"))
     if description:
-        return description[:280]
+        return description[:_MAX_SUMMARY_LENGTH]
 
     content = raw_entry.get("content")
     if isinstance(content, Sequence):
@@ -107,7 +108,7 @@ def _extract_summary(raw_entry: Mapping[str, Any]) -> str | None:
             if isinstance(item, Mapping):
                 value = _clean_text(item.get("value"))
                 if value:
-                    return value[:280]
+                    return value[:_MAX_SUMMARY_LENGTH]
     return None
 
 
