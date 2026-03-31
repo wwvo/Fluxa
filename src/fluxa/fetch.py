@@ -68,7 +68,7 @@ class _SourcePollResult:
 
 
 def poll_feeds(
-    feeds: list[FeedConfig] | tuple[FeedConfig, ...],
+    feeds: Sequence[FeedConfig],
     state_by_feed: dict[str, FeedState],
     *,
     bootstrap_mode: bool,
@@ -364,7 +364,7 @@ def _poll_source(
 
 
 def _build_host_limiters(
-    feeds: list[FeedConfig] | tuple[FeedConfig, ...],
+    feeds: Sequence[FeedConfig],
 ) -> dict[str, BoundedSemaphore]:
     host_limiters: dict[str, BoundedSemaphore] = {}
     for feed in feeds:
