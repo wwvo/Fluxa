@@ -439,15 +439,12 @@ def _get_with_host_limit(
     host_limiters: dict[str, BoundedSemaphore],
 ) -> httpx.Response:
     limiter = host_limiters[_extract_host(source_url)]
-    _ = limiter.acquire()
-    try:
+    with limiter:
         return client.get(
             source_url,
             headers=headers,
             timeout=timeout,
         )
-    finally:
-        limiter.release()
 
 
 def _build_source_error_result(
