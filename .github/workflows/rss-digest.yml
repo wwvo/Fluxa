@@ -16,6 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   STATE_BRANCH: rss-state
+  PAGES_BRANCH: gh-pages
   TZ: Asia/Shanghai
   CNB_REPO: wwvo/Issuo
   CNB_ISSUE_LABELS: RSS
@@ -95,8 +96,8 @@ jobs:
           CNB_REPO: ${{ env.CNB_REPO }}
           CNB_ISSUE_LABELS: ${{ env.CNB_ISSUE_LABELS }}
           CNB_ISSUE_ASSIGNEES: ${{ env.CNB_ISSUE_ASSIGNEES }}
-          SITE_URL: ${{ vars.SITE_URL || '' }}
-          SITE_BASE_URL: ${{ vars.SITE_BASE_URL || '/' }}
+          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+          SITE_BASE_URL: ${{ vars.SITE_BASE_URL || format('/{0}', github.event.repository.name) }}
         run: >
           uv run fluxa
           --publisher github
@@ -106,37 +107,28 @@ jobs:
           --timezone ${{ env.TZ }}
           --run-id ${{ github.run_id }}
 
-      - name: Deploy digest site
-        if: always() && vars.SITE_URL != '' && secrets.DEPLOY_HOST != ''
+      - name: Deploy to GitHub Pages
+        if: always()
         shell: bash
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_BASE_DIR: ${{ secrets.DEPLOY_BASE_DIR || '/srv/fluxa' }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ ! -d dist ] || [ ! -f dist/index.html ]; then
-            echo "dist 目录不存在或为空，跳过部署"
+            echo "dist 目录不存在或为空，跳过 GitHub Pages 部署"
             exit 0
           fi
-          deploy_port="${DEPLOY_PORT:-22}"
-          install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > "$HOME/.ssh/deploy_key"
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/deploy_key"
-          chmod 644 "$HOME/.ssh/known_hosts"
-          RELEASE_ID="$(date -u +%Y%m%d-%H%M%S)"
-          release_dir="${DEPLOY_BASE_DIR}/releases/${RELEASE_ID}"
-          ssh -p "$deploy_port" -i "$HOME/.ssh/deploy_key" \
-            "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$release_dir'"
-          rsync -az --delete \
-            -e "ssh -p $deploy_port -i $HOME/.ssh/deploy_key" \
-            dist/ "$DEPLOY_USER@$DEPLOY_HOST:$release_dir/"
-          ssh -p "$deploy_port" -i "$HOME/.ssh/deploy_key" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            "bash -s -- '$DEPLOY_BASE_DIR' '$RELEASE_ID' 5" \
-            < scripts/promote_release.sh
+
+          cd dist
+          git init .
+          git checkout -b "$PAGES_BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "" > .nojekyll
+          git add -A
+          git commit -m "🚀 deploy(pages): 更新 Fluxa Digest 静态站"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin "$PAGES_BRANCH"
 
       - name: Commit state branch
         id: commit-state
