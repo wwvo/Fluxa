@@ -480,7 +480,11 @@ def _read_env_csv(name: str) -> list[str]:
 
 
 def _resolve_display_key(display_key: str | None, run_time: datetime) -> str:
-    resolved = _normalize_text(display_key) or _read_env_text("FLUXA_DISPLAY_KEY")
+    resolved = _read_env_text("FLUXA_DISPLAY_KEY")
+    if display_key is not None:
+        normalized = display_key.strip()
+        if normalized:
+            resolved = normalized
     if resolved is not None:
         return resolved
     return _build_time_window_display_key(run_time)
@@ -497,15 +501,6 @@ def _build_time_window_display_key(run_time: datetime) -> str:
     )
     window_end = window_start + timedelta(hours=2)
     return f"{window_start:%H:%M}-{window_end:%H:%M}"
-
-
-def _normalize_text(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    if not normalized:
-        return None
-    return normalized
 
 
 def _resolve_repo(
