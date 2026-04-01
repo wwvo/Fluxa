@@ -10,7 +10,7 @@
       FLUXA_PUBLISHER: "cnb"
       STATE_BRANCH: "rss-state"
       TZ: "Asia/Shanghai"
-      SITE_URL: "${SITE_URL:-https://wwvo.github.io/Fluxa}"
+      SITE_URL: "${SITE_URL:-https://wwvo.github.io}"
       SITE_BASE_URL: "${SITE_BASE_URL:-/Fluxa}"
     stages:
       - name: install-python-deps

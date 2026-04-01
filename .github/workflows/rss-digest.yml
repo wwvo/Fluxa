@@ -109,7 +109,7 @@ jobs:
           CNB_REPO: ${{ env.CNB_REPO }}
           CNB_ISSUE_LABELS: ${{ env.CNB_ISSUE_LABELS }}
           CNB_ISSUE_ASSIGNEES: ${{ env.CNB_ISSUE_ASSIGNEES }}
-          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io', github.repository_owner) }}
           SITE_BASE_URL: ${{ vars.SITE_BASE_URL || format('/{0}', github.event.repository.name) }}
         run: >
           uv run fluxa

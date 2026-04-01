@@ -70,7 +70,7 @@ def build_digest_site(
     index_template = env.get_template("index.html.j2")
     template_context = _build_template_context(site_title, normalized_base)
 
-    page_url = build_url(normalized_base, f"/doc/{slug}")
+    page_url = build_url(normalized_base, f"/doc/{slug}/")
     full_url = _join_site_url(site_url, page_url)
 
     # 按 feed 分组条目，供模板渲染。
@@ -207,7 +207,7 @@ def _build_index_entries(
     entries: list[dict[str, Any]] = []
     for item in manifest:
         page_url = item.get("page_url") or build_url(
-            base_url, f"/doc/{item['slug']}"
+            base_url, f"/doc/{item['slug']}/"
         )
         entries.append({
             "slug": item["slug"],

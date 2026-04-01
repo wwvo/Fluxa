@@ -87,7 +87,7 @@ class BuildDigestSiteTests(unittest.TestCase):
             )
 
             self.assertIsInstance(result, SiteBuildResult)
-            self.assertEqual(result.digest_url, "https://example.com/doc/2026-04-01-08-00-10-00")
+            self.assertEqual(result.digest_url, "https://example.com/doc/2026-04-01-08-00-10-00/")
             self.assertEqual(result.total_count, 1)
             self.assertTrue((output_dir / "index.html").exists())
             self.assertTrue((output_dir / "doc" / "2026-04-01-08-00-10-00" / "index.html").exists())
@@ -123,7 +123,7 @@ class BuildDigestSiteTests(unittest.TestCase):
 
             self.assertEqual(
                 result.digest_url,
-                "https://example.com/preview/doc/2026-04-01-08-00-10-00",
+                "https://example.com/preview/doc/2026-04-01-08-00-10-00/",
             )
 
 
