@@ -1,25 +1,22 @@
-"""静态文章站点生成（增量模式）。
+"""静态 Digest 站点生成（增量模式）。
 
-本模块负责把 RSS 新增条目生成为静态 HTML 页面，部署到自有服务器后可绕过 CNB 外链限制。
+本模块负责把每次运行的 RSS 摘要 issue 生成为一个静态 HTML 页面，部署到 GitHub Pages
+后可绕过 CNB 外链限制。每次运行产出一个 digest 页面，历史页面通过 manifest.json 累积保留。
+
 构建逻辑复用自 DocDock 的静态站方案，模板和样式位于 templates/site/ 和 static/site/。
-
-增量策略：通过 output_dir/manifest.json 记录所有已发布文章。每次运行只为新条目生成 HTML
-页面，首页索引从 manifest 重建以包含全部历史文章。已有文章的 HTML 页面不会被覆盖或删除。
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from markdown_it import MarkdownIt
 
 from fluxa.models import NormalizedEntry
 
@@ -33,8 +30,7 @@ class SiteBuildResult:
     """静态站构建结果。"""
 
     output_dir: Path
-    entry_links: dict[str, str]
-    new_count: int
+    digest_url: str
     total_count: int
 
 
@@ -46,19 +42,20 @@ def build_digest_site(
     output_dir: Path,
     templates_dir: Path,
     static_dir: Path,
+    issue_title: str,
+    issue_date: str,
+    display_key: str,
+    run_id: str,
     site_title: str = _SITE_TITLE,
 ) -> SiteBuildResult:
-    """增量构建静态 HTML 站点。只为新条目生成页面，保留所有历史文章。"""
+    """为本次运行构建一个 digest HTML 页面，追加到增量站点中。"""
 
     normalized_base = normalize_base_url(base_url)
+    slug = _build_digest_slug(issue_date, display_key)
 
-    # 加载已有 manifest，跳过已发布的条目。
+    # 加载已有 manifest，检查本轮是否已构建过（幂等）。
     existing_manifest = _load_manifest(output_dir)
-    existing_entry_ids = {item["entry_id"] for item in existing_manifest}
     existing_slugs = {item["slug"] for item in existing_manifest}
-
-    new_entries = [e for e in entries if e.entry_id not in existing_entry_ids]
-    slugs = generate_slugs(new_entries, reserved_slugs=existing_slugs)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     _copy_static_assets(static_dir, output_dir)
@@ -69,79 +66,60 @@ def build_digest_site(
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    entry_template = env.get_template("entry.html.j2")
+    digest_template = env.get_template("digest.html.j2")
     index_template = env.get_template("index.html.j2")
-
     template_context = _build_template_context(site_title, normalized_base)
 
-    # 为本轮新增条目生成 HTML 页面和 manifest 记录。
-    entry_links: dict[str, str] = {}
-    new_manifest_items: list[dict[str, Any]] = []
+    page_url = build_url(normalized_base, f"/doc/{slug}")
+    full_url = _join_site_url(site_url, page_url)
 
-    for entry in new_entries:
-        slug = slugs[entry.entry_id]
-        page_url = build_url(normalized_base, f"/doc/{slug}")
-        full_url = _join_site_url(site_url, page_url)
-        entry_links[entry.entry_id] = full_url
+    # 按 feed 分组条目，供模板渲染。
+    grouped_entries = _group_entries_by_feed(entries)
 
-        published_at = _format_datetime(entry)
-        content_html = _render_summary_html(entry.summary)
+    # 生成本轮 digest 页面（幂等：覆盖同 slug 的旧页面）。
+    _write_text(
+        output_dir / "doc" / slug / "index.html",
+        digest_template.render(
+            **template_context,
+            issue_title=issue_title,
+            issue_date=issue_date,
+            display_key=display_key,
+            run_id=run_id,
+            new_count=len(entries),
+            grouped_entries=grouped_entries,
+        ),
+    )
 
-        entry_data = {
-            "title": entry.title,
-            "url": entry.url,
-            "summary": entry.summary,
-            "feed_title": entry.feed_title,
-            "published_at": published_at,
-        }
+    # 更新 manifest：如果同 slug 已存在则更新，否则插入到最前面。
+    new_item: dict[str, Any] = {
+        "slug": slug,
+        "issue_title": issue_title,
+        "issue_date": issue_date,
+        "display_key": display_key,
+        "run_id": run_id,
+        "new_count": len(entries),
+        "page_url": page_url,
+    }
 
-        _write_text(
-            output_dir / "doc" / slug / "index.html",
-            entry_template.render(
-                **template_context,
-                entry=entry_data,
-                content_html=content_html,
-            ),
-        )
+    if slug in existing_slugs:
+        merged_manifest = [
+            new_item if item["slug"] == slug else item
+            for item in existing_manifest
+        ]
+    else:
+        merged_manifest = [new_item, *existing_manifest]
 
-        new_manifest_items.append({
-            "entry_id": entry.entry_id,
-            "slug": slug,
-            "title": entry.title,
-            "url": entry.url,
-            "summary": entry.summary,
-            "feed_id": entry.feed_id,
-            "feed_title": entry.feed_title,
-            "published_at": published_at,
-            "page_url": page_url,
-        })
-
-    # 历史条目中如果有和本轮同 entry_id 的，也补上 entry_links（幂等）。
-    for item in existing_manifest:
-        entry_id = item["entry_id"]
-        if entry_id not in entry_links:
-            page_url = item.get("page_url") or build_url(
-                normalized_base, f"/doc/{item['slug']}"
-            )
-            entry_links[entry_id] = _join_site_url(site_url, page_url)
-
-    # 合并 manifest：新条目在前，历史在后。
-    merged_manifest = new_manifest_items + existing_manifest
-
-    # 用合并后的全量 manifest 重建首页索引。
+    # 用全量 manifest 重建首页索引。
     all_index_entries = _build_index_entries(merged_manifest, normalized_base)
     _write_text(
         output_dir / "index.html",
-        index_template.render(**template_context, entries=all_index_entries),
+        index_template.render(**template_context, digests=all_index_entries),
     )
-
-    # 持久化更新后的 manifest。
     _save_manifest(output_dir, merged_manifest)
 
     return SiteBuildResult(
         output_dir=output_dir,
-        entry_links=entry_links,
-        new_count=len(new_entries),
+        digest_url=full_url,
         total_count=len(merged_manifest),
     )
 
@@ -170,56 +148,50 @@ def build_url(base_url: str, path: str) -> str:
 def slugify(value: str) -> str:
     """将文本转为 URL 安全的 slug。"""
 
-    slug = _SLUG_PATTERN.sub("-", value.lower()).strip("-")
-    return slug
+    return _SLUG_PATTERN.sub("-", value.lower()).strip("-")
 
 
-def generate_slugs(
+def _build_digest_slug(issue_date: str, display_key: str) -> str:
+    """为 digest 页面生成 slug，如 2026-04-01-08-00-10-00。"""
+
+    raw = f"{issue_date}-{display_key}"
+    return slugify(raw) or issue_date
+
+
+def _group_entries_by_feed(
     entries: Sequence[NormalizedEntry],
-    *,
-    reserved_slugs: set[str] | None = None,
-) -> dict[str, str]:
-    """为每个条目生成唯一 slug，冲突时追加数字后缀。"""
+) -> list[dict[str, Any]]:
+    """按 feed 分组条目，供模板渲染。"""
 
-    occupied = set(reserved_slugs) if reserved_slugs else set()
-    slug_counts: dict[str, int] = {}
-    result: dict[str, str] = {}
+    groups: dict[str, list[dict[str, str | None]]] = {}
+    titles: dict[str, str] = {}
+
     for entry in entries:
-        base = slugify(entry.title) or _hash_slug(entry.entry_id)
-        count = slug_counts.get(base, 0)
-        slug_counts[base] = count + 1
-        slug = base if count == 0 else f"{base}-{count + 1}"
-        # 继续递增直到不和已有 slug 冲突。
-        while slug in occupied:
-            count += 1
-            slug_counts[base] = count
-            slug = f"{base}-{count + 1}"
-        occupied.add(slug)
-        result[entry.entry_id] = slug
-    return result
+        groups.setdefault(entry.feed_id, [])
+        titles.setdefault(entry.feed_id, entry.feed_title)
+        groups[entry.feed_id].append({
+            "title": entry.title,
+            "url": entry.url,
+            "published_at": (
+                entry.published_at.strftime("%Y-%m-%d %H:%M")
+                if entry.published_at
+                else None
+            ),
+            "summary": entry.summary,
+        })
+
+    return [
+        {
+            "feed_id": feed_id,
+            "feed_title": titles[feed_id],
+            "entries": feed_entries,
+            "count": len(feed_entries),
+        }
+        for feed_id, feed_entries in groups.items()
+    ]
 
 
-def _hash_slug(entry_id: str) -> str:
-    return hashlib.sha256(entry_id.encode("utf-8")).hexdigest()[:12]
-
-
-def _format_datetime(entry: NormalizedEntry) -> str | None:
-    if entry.published_at is None:
-        return None
-    return entry.published_at.strftime("%Y-%m-%d %H:%M")
-
-
-def _render_summary_html(summary: str | None) -> str:
-    if not summary:
-        return ""
-    md = MarkdownIt("js-default")
-    return cast(str, md.render(summary))
-
-
-def _build_template_context(
-    site_title: str,
-    base_url: str,
-) -> dict[str, str]:
+def _build_template_context(site_title: str, base_url: str) -> dict[str, str]:
     return {
         "site_title": site_title,
         "base_url": base_url,
@@ -238,11 +210,11 @@ def _build_index_entries(
             base_url, f"/doc/{item['slug']}"
         )
         entries.append({
-            "title": item["title"],
-            "url": item.get("url"),
-            "summary": item.get("summary"),
-            "feed_title": item.get("feed_title", ""),
-            "published_at": item.get("published_at"),
+            "slug": item["slug"],
+            "issue_title": item.get("issue_title", ""),
+            "issue_date": item.get("issue_date", ""),
+            "display_key": item.get("display_key", ""),
+            "new_count": item.get("new_count", 0),
             "page_url": page_url,
         })
     return entries
@@ -262,7 +234,7 @@ def _load_manifest(output_dir: Path) -> list[dict[str, Any]]:
         return []
     if not isinstance(raw, list):
         return []
-    return [item for item in raw if isinstance(item, dict) and "entry_id" in item]
+    return [item for item in raw if isinstance(item, dict) and "slug" in item]
 
 
 def _save_manifest(output_dir: Path, manifest: list[dict[str, Any]]) -> None:

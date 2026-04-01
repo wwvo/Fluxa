@@ -70,7 +70,7 @@ def publish_summaries(
     dry_run: bool,
     publish_state: PublishState | None = None,
     publish_state_path: Path | None = None,
-    site_links: dict[str, str] | None = None,
+    digest_url: str | None = None,
 ) -> list[PublishResult]:
     publisher_names = _resolve_publishers(publishers)
     if repo is not None and len(publisher_names) > 1:
@@ -84,7 +84,7 @@ def publish_summaries(
         timezone_name=timezone_name,
         run_id=run_id,
         display_key=display_key,
-        site_links=site_links,
+        digest_url=digest_url,
     )
 
     if dry_run:
@@ -161,7 +161,7 @@ def _build_issue_draft(
     timezone_name: str,
     run_id: str | None,
     display_key: str | None,
-    site_links: dict[str, str] | None = None,
+    digest_url: str | None = None,
 ) -> _IssueDraft:
     resolved_run_id = _resolve_run_id(run_id)
     timezone = _load_timezone(timezone_name)
@@ -178,7 +178,7 @@ def _build_issue_draft(
         timezone=timezone,
         run_id=resolved_run_id,
         run_time=run_time,
-        site_links=site_links,
+        digest_url=digest_url,
     )
     return _IssueDraft(
         issue_title=issue_title,

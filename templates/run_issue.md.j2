@@ -12,6 +12,9 @@
 - 新增文章：{{ new_count }}
 - 错误 Feed：{{ error_count }}
 - 304 / 无变化：{{ not_modified_count }}
+{% if digest_url %}
+- **[在线阅读本期 Digest]({{ digest_url }})**
+{% endif %}
 
 {% if grouped_entries %}
 ## 新文章
@@ -19,9 +22,9 @@
 ### {{ group.feed_title }}（{{ group.count }}）
 {% for entry in group.entries %}
 {% if entry.url -%}
-- [{{ entry.title }}]({{ entry.url }}){% if entry.site_link %} · [阅读]({{ entry.site_link }}){% endif %}{% if entry.published_at %} · {{ entry.published_at }}{% endif %}
+- [{{ entry.title }}]({{ entry.url }}){% if entry.published_at %} · {{ entry.published_at }}{% endif %}
 {% else -%}
-- {{ entry.title }}{% if entry.site_link %} · [阅读]({{ entry.site_link }}){% endif %}{% if entry.published_at %} · {{ entry.published_at }}{% endif %}
+- {{ entry.title }}{% if entry.published_at %} · {{ entry.published_at }}{% endif %}
 {% endif -%}
 {% if entry.summary %}
   摘要：{{ entry.summary }}

@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import os
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 
 from fluxa.config import load_config
@@ -123,12 +124,15 @@ def main() -> int:
     # bootstrap 以及"本轮无新增"都不应该发 issue，但依然要按成功结果刷新 state。
     should_publish = summary.new_count > 0 and not summary.bootstrap_mode
 
-    # 当 SITE_URL 已配置且有新文章时，为每篇文章生成静态 HTML 页面。
-    site_links = _build_site_if_configured(
+    # 当 SITE_URL 已配置且有新文章时，为本轮生成一个静态 digest 页面。
+    digest_url = _build_site_if_configured(
         args,
         new_entries=summary.new_entries,
         should_build=should_publish,
     )
+
+    if digest_url:
+        print(f"本轮 Digest 页面：{digest_url}")
 
     try:
         if should_publish:
@@ -143,7 +147,7 @@ def main() -> int:
                 dry_run=args.dry_run,
                 publish_state=publish_state,
                 publish_state_path=publish_state_path,
-                site_links=site_links,
+                digest_url=digest_url,
             )
 
         if not args.dry_run:
@@ -187,25 +191,41 @@ def _build_site_if_configured(
     *,
     new_entries: list[object],
     should_build: bool,
-) -> dict[str, str] | None:
+) -> str | None:
     site_url = _read_env("SITE_URL")
     if not site_url or not should_build or not new_entries:
         return None
 
     from fluxa.models import NormalizedEntry
+    from fluxa.publish import _load_timezone, _resolve_display_key, _resolve_run_id
     from fluxa.site import build_digest_site
+
+    normalized_entries = [e for e in new_entries if isinstance(e, NormalizedEntry)]
+    if not normalized_entries:
+        return None
+
+    timezone = _load_timezone(args.timezone)
+    run_time = datetime.now(timezone).replace(microsecond=0)
+    resolved_run_id = _resolve_run_id(args.run_id)
+    issue_date = run_time.date().isoformat()
+    resolved_display_key = _resolve_display_key(args.display_key, run_time)
+    issue_title = f"Fluxa Digest | {issue_date} | run {resolved_run_id}"
 
     site_base_url = _read_env("SITE_BASE_URL") or "/"
     result = build_digest_site(
-        [e for e in new_entries if isinstance(e, NormalizedEntry)],
+        normalized_entries,
         site_url=site_url,
         base_url=site_base_url,
         output_dir=Path(args.site_output_dir),
         templates_dir=Path(args.templates_dir) / "site",
         static_dir=Path("static/site"),
+        issue_title=issue_title,
+        issue_date=issue_date,
+        display_key=resolved_display_key,
+        run_id=resolved_run_id,
     )
-    print(f"静态站已构建到 {result.output_dir}，新增 {result.new_count} 篇，累计 {result.total_count} 篇。")
-    return result.entry_links
+    print(f"静态站已构建到 {result.output_dir}，累计 {result.total_count} 期。")
+    return result.digest_url
 
 
 def _read_env(name: str) -> str | None:

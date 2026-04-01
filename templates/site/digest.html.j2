@@ -1,0 +1,47 @@
+{% extends "base.html.j2" %}
+
+{% set page_title = issue_title %}
+{% set page_description = "Fluxa Digest " ~ issue_date ~ " " ~ display_key %}
+
+{% block content %}
+  <section class="hero-card hero-card-compact">
+    <p class="eyebrow">Fluxa Digest</p>
+    <h1>{{ issue_date }} · {{ display_key }}</h1>
+    <div class="meta-row">
+      <span>新增文章：{{ new_count }}</span>
+      <span>Run ID：{{ run_id }}</span>
+    </div>
+    <div class="hero-actions">
+      <a class="button-link" href="{{ home_url }}">返回首页</a>
+    </div>
+  </section>
+
+  {% for group in grouped_entries %}
+  <section class="hero-card hero-card-compact">
+    <h2>{{ group.feed_title }}（{{ group.count }}）</h2>
+    <ul class="entry-list">
+      {% for entry in group.entries %}
+      <li>
+        {% if entry.url %}
+          <a href="{{ entry.url }}">{{ entry.title }}</a>
+        {% else %}
+          {{ entry.title }}
+        {% endif %}
+        {% if entry.published_at %}
+          <span class="doc-meta"> · {{ entry.published_at }}</span>
+        {% endif %}
+        {% if entry.summary %}
+          <p class="doc-summary">{{ entry.summary }}</p>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+
+  {% if not grouped_entries %}
+  <section class="hero-card hero-card-compact">
+    <p class="doc-summary">本轮没有新增文章。</p>
+  </section>
+  {% endif %}
+{% endblock %}
