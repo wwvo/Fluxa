@@ -204,7 +204,7 @@ def _build_site_if_configured(
         templates_dir=Path(args.templates_dir) / "site",
         static_dir=Path("static/site"),
     )
-    print(f"静态站已构建到 {result.output_dir}，共 {len(result.entry_links)} 篇文章。")
+    print(f"静态站已构建到 {result.output_dir}，新增 {result.new_count} 篇，累计 {result.total_count} 篇。")
     return result.entry_links
 
 

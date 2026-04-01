@@ -71,6 +71,19 @@ jobs:
           git add state/state.json state/publish-state.json
           git commit -m "🔧 chore(state): 初始化 rss-state 分支"
 
+      - name: Checkout gh-pages
+        id: checkout-pages
+        continue-on-error: true
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.PAGES_BRANCH }}
+          path: dist
+          fetch-depth: 1
+
+      - name: Initialize dist
+        if: steps.checkout-pages.outcome == 'failure'
+        run: mkdir -p dist
+
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
@@ -120,15 +133,27 @@ jobs:
           fi
 
           cd dist
-          git init .
-          git checkout -b "$PAGES_BRANCH"
+          # 如果是从已有 gh-pages 分支 checkout 的，复用其 git 历史；否则初始化。
+          if [ ! -d .git ]; then
+            git init .
+            git checkout -b "$PAGES_BRANCH"
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          else
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           echo "" > .nojekyll
           git add -A
+
+          if git diff --cached --quiet; then
+            echo "gh-pages 无变更，跳过提交"
+            exit 0
+          fi
+
           git commit -m "🚀 deploy(pages): 更新 Fluxa Digest 静态站"
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin "$PAGES_BRANCH"
+          git push origin HEAD:"$PAGES_BRANCH"
 
       - name: Commit state branch
         id: commit-state
