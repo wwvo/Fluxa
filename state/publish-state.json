@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "latest_window_key": "2026-04-13|02:00-04:00",
+  "latest_window_key": "2026-04-13|04:00-06:00",
   "windows": {
     "2026-03-27|08:00-10:00": {
       "issue_date": "2026-03-27",
@@ -2935,6 +2935,22 @@
         "github": {
           "repo": "wwvo/Fluxa",
           "issue_number": 190
+        }
+      }
+    },
+    "2026-04-13|04:00-06:00": {
+      "issue_date": "2026-04-13",
+      "display_key": "04:00-06:00",
+      "issue_title": "Fluxa Digest | 2026-04-13 | run 24315777459",
+      "run_id": "24315777459",
+      "publishers": {
+        "cnb": {
+          "repo": "wwvo/Issuo",
+          "issue_number": 186
+        },
+        "github": {
+          "repo": "wwvo/Fluxa",
+          "issue_number": 191
         }
       }
     }
