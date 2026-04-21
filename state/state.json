@@ -3,12 +3,16 @@
   "bootstrap_completed": true,
   "feeds": {
     "36kr-hot": {
-      "etag": null,
-      "last_modified": null,
+      "etag": "\"1cb9a-pb2e18OXibRH3rzGXpFs+/tr2XQ\"",
+      "last_modified": "Tue, 21 Apr 2026 09:18:24 GMT",
       "seen_ids": [
+        "https://www.36kr.com/p/3775237756437250",
+        "https://www.36kr.com/p/3775892441301511",
         "https://www.36kr.com/p/3775833331286530",
         "https://www.36kr.com/p/3775791350268675",
         "https://www.36kr.com/p/3774954488349441",
+        "https://www.36kr.com/p/3774954392519177",
+        "https://www.36kr.com/p/3774954107650568",
         "https://www.36kr.com/p/3774851815490048",
         "https://www.36kr.com/p/3774733205275394",
         "https://www.36kr.com/p/3774585093849601",
@@ -301,14 +305,10 @@
         "https://www.36kr.com/p/3742526226333700",
         "https://www.36kr.com/p/3716849634489984",
         "https://www.36kr.com/p/3743360666566919",
-        "https://www.36kr.com/p/3743359537119488",
-        "https://www.36kr.com/p/3742501887967488",
-        "https://www.36kr.com/p/3738258350817540",
-        "https://www.36kr.com/p/3742379822399492",
-        "https://www.36kr.com/p/3741970161025024"
+        "https://www.36kr.com/p/3743359537119488"
       ],
-      "last_checked_at": "2026-04-21T06:00:34+00:00",
-      "last_success_at": "2026-04-21T06:00:34+00:00",
+      "last_checked_at": "2026-04-21T09:22:38+00:00",
+      "last_success_at": "2026-04-21T09:22:38+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/36kr/hot-list",
@@ -322,10 +322,10 @@
           "last_error": "The read operation timed out"
         },
         "https://rsshub-balancer.virworks.moe/36kr/hot-list": {
-          "etag": null,
-          "last_modified": null,
-          "last_checked_at": "2026-04-21T06:00:34+00:00",
-          "last_success_at": "2026-04-21T06:00:34+00:00",
+          "etag": "\"1cb9a-pb2e18OXibRH3rzGXpFs+/tr2XQ\"",
+          "last_modified": "Tue, 21 Apr 2026 09:18:24 GMT",
+          "last_checked_at": "2026-04-21T09:22:38+00:00",
+          "last_success_at": "2026-04-21T09:22:38+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -380,8 +380,8 @@
         "https://antfu.me/posts/nuxt-devtools-v1",
         "https://antfu.me/posts/roads-to-oss-set-theory-vuefesjapan-2023"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://antfu.me/feed.xml",
@@ -389,17 +389,19 @@
         "https://antfu.me/feed.xml": {
           "etag": "\"b51500e477ce40d1273b6f521f176fe6-ssl-df\"",
           "last_modified": null,
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 304,
           "last_error": null
         }
       }
     },
     "appinn": {
-      "etag": "\"69e7057e-13294\"",
-      "last_modified": "Tue, 21 Apr 2026 05:05:02 GMT",
+      "etag": "\"69e73dbe-12e93\"",
+      "last_modified": "Tue, 21 Apr 2026 09:05:02 GMT",
       "seen_ids": [
+        "https://www.appinn.com/thunderbolt/",
+        "https://www.appinn.com/prove-you-are-a-robot/",
         "https://www.appinn.com/community-letter-from-tim/",
         "https://www.appinn.com/mouser-alternative-to-logitech-options/",
         "https://www.appinn.com/windows-start-menu-5-style/",
@@ -466,17 +468,17 @@
         "https://www.appinn.com/tailscale-aperture/",
         "https://www.appinn.com/molili-openclaw-cn/"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://feeds.appinn.com/appinns/",
       "sources": {
         "https://feeds.appinn.com/appinns/": {
-          "etag": "\"69e7057e-13294\"",
-          "last_modified": "Tue, 21 Apr 2026 05:05:02 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "etag": "\"69e73dbe-12e93\"",
+          "last_modified": "Tue, 21 Apr 2026 09:05:02 GMT",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -497,8 +499,8 @@
         "https://blog.cnbang.net/?p=4199",
         "https://blog.cnbang.net/?p=4178"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://blog.cnbang.net/feed/",
@@ -506,8 +508,8 @@
         "https://blog.cnbang.net/feed/": {
           "etag": "\"5175df507d0a4052dc25de91932d04dc\"",
           "last_modified": "Mon, 12 Jan 2026 12:50:55 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 304,
           "last_error": null
         }
@@ -551,8 +553,8 @@
         "https://baoyu.io/blog/2026-02-25/coding-agent-sweet-spot",
         "https://baoyu.io/blog/2026-02-23/claude-code-vs-cursor"
       ],
-      "last_checked_at": "2026-04-21T06:00:34+00:00",
-      "last_success_at": "2026-04-21T06:00:34+00:00",
+      "last_checked_at": "2026-04-21T09:22:38+00:00",
+      "last_success_at": "2026-04-21T09:22:38+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/baoyu/blog",
@@ -567,9 +569,9 @@
         },
         "https://rsshub.ktachibana.party/baoyu/blog": {
           "etag": "W/\"10b10c-mxtYSO3C2JIRrVWAHRfWttBEwCA\"",
-          "last_modified": "Tue, 21 Apr 2026 06:00:38 GMT",
-          "last_checked_at": "2026-04-21T06:00:34+00:00",
-          "last_success_at": "2026-04-21T06:00:34+00:00",
+          "last_modified": "Tue, 21 Apr 2026 09:22:39 GMT",
+          "last_checked_at": "2026-04-21T09:22:38+00:00",
+          "last_success_at": "2026-04-21T09:22:38+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -587,8 +589,8 @@
         "https://bestofjs.org/rankings/monthly/2025/10",
         "https://bestofjs.org/rankings/monthly/2025/9"
       ],
-      "last_checked_at": "2026-04-21T06:00:34+00:00",
-      "last_success_at": "2026-04-21T06:00:34+00:00",
+      "last_checked_at": "2026-04-21T09:22:38+00:00",
+      "last_success_at": "2026-04-21T09:22:38+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/bestofjs/rankings/monthly",
@@ -619,9 +621,9 @@
         },
         "https://rsshub.ktachibana.party/bestofjs/rankings/monthly": {
           "etag": "W/\"3c5f6-YxhbhCUuX975QVpUfRRhg+s/j68\"",
-          "last_modified": "Tue, 21 Apr 2026 06:00:40 GMT",
-          "last_checked_at": "2026-04-21T06:00:34+00:00",
-          "last_success_at": "2026-04-21T06:00:34+00:00",
+          "last_modified": "Tue, 21 Apr 2026 09:22:41 GMT",
+          "last_checked_at": "2026-04-21T09:22:38+00:00",
+          "last_success_at": "2026-04-21T09:22:38+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -679,8 +681,8 @@
         "https://claude.com/blog/preview-review-and-merge-with-claude-code",
         "https://claude.com/blog/improved-web-search-with-dynamic-filtering"
       ],
-      "last_checked_at": "2026-04-21T06:00:34+00:00",
-      "last_success_at": "2026-04-21T06:00:34+00:00",
+      "last_checked_at": "2026-04-21T09:22:38+00:00",
+      "last_success_at": "2026-04-21T09:22:38+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/claude/blog",
@@ -694,10 +696,10 @@
           "last_error": "The read operation timed out"
         },
         "https://rsshub-balancer.virworks.moe/claude/blog": {
-          "etag": null,
-          "last_modified": null,
-          "last_checked_at": "2026-04-21T06:00:34+00:00",
-          "last_success_at": "2026-04-21T06:00:34+00:00",
+          "etag": "W/\"30440-hmYMsC7pRPghds2v69wRtlG5hMM\"",
+          "last_modified": "Tue, 21 Apr 2026 09:17:50 GMT",
+          "last_checked_at": "2026-04-21T09:22:38+00:00",
+          "last_success_at": "2026-04-21T09:22:38+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -760,8 +762,8 @@
         "https://css-tricks.com/?p=391982",
         "https://css-tricks.com/?p=392208"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://css-tricks.com/category/articles/feed/",
@@ -769,8 +771,8 @@
         "https://css-tricks.com/category/articles/feed/": {
           "etag": "W/\"c065a7f624946e52ba4bfc67e77392c2\"",
           "last_modified": "Mon, 20 Apr 2026 13:55:18 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 304,
           "last_error": null
         }
@@ -793,8 +795,8 @@
         "https://css-tricks.com/there-is-no-need-to-trap-focus-on-a-dialog-element/",
         "https://css-tricks.com/that-time-i-tried-explaining-html-and-css-to-my-5-year-old-niece/"
       ],
-      "last_checked_at": "2026-04-21T06:00:34+00:00",
-      "last_success_at": "2026-04-21T06:00:34+00:00",
+      "last_checked_at": "2026-04-21T09:22:38+00:00",
+      "last_success_at": "2026-04-21T09:22:38+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/css-tricks/popular",
@@ -826,8 +828,8 @@
         "https://rsshub.ktachibana.party/css-tricks/popular": {
           "etag": "\"5b886-SINCLBUUBoWcWwhlz1mKf5LoXb4\"",
           "last_modified": "Wed, 01 Apr 2026 16:51:04 GMT",
-          "last_checked_at": "2026-04-21T06:00:34+00:00",
-          "last_success_at": "2026-04-21T06:00:34+00:00",
+          "last_checked_at": "2026-04-21T09:22:38+00:00",
+          "last_success_at": "2026-04-21T09:22:38+00:00",
           "last_http_status": 304,
           "last_error": null
         },
@@ -873,8 +875,8 @@
         "https://cursor.com/blog/agent-best-practices",
         "sha1:cf001c5b18c0df4585070f080244708f6a6a9b49"
       ],
-      "last_checked_at": "2026-04-21T06:00:34+00:00",
-      "last_success_at": "2026-04-21T06:00:34+00:00",
+      "last_checked_at": "2026-04-21T09:22:39+00:00",
+      "last_success_at": "2026-04-21T09:22:39+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/cursor/blog",
@@ -889,9 +891,9 @@
         },
         "https://rsshub.ktachibana.party/cursor/blog": {
           "etag": "W/\"6e0-gtSoMUgDT8ytrD+H5Vp50A3VAtw\"",
-          "last_modified": "Tue, 21 Apr 2026 06:01:03 GMT",
-          "last_checked_at": "2026-04-21T06:00:34+00:00",
-          "last_success_at": "2026-04-21T06:00:34+00:00",
+          "last_modified": "Tue, 21 Apr 2026 09:22:42 GMT",
+          "last_checked_at": "2026-04-21T09:22:39+00:00",
+          "last_success_at": "2026-04-21T09:22:39+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -913,8 +915,8 @@
         "3-0",
         "03-04-26"
       ],
-      "last_checked_at": "2026-04-21T06:00:35+00:00",
-      "last_success_at": "2026-04-21T06:00:35+00:00",
+      "last_checked_at": "2026-04-21T09:22:39+00:00",
+      "last_success_at": "2026-04-21T09:22:39+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/cursor/changelog",
@@ -929,9 +931,9 @@
         },
         "https://rsshub.ktachibana.party/cursor/changelog": {
           "etag": "W/\"1d7c5-2XjQ1a+cfnEDFFMSAJFvxQ8Xm8E\"",
-          "last_modified": "Tue, 21 Apr 2026 06:01:11 GMT",
-          "last_checked_at": "2026-04-21T06:00:35+00:00",
-          "last_success_at": "2026-04-21T06:00:35+00:00",
+          "last_modified": "Tue, 21 Apr 2026 09:22:43 GMT",
+          "last_checked_at": "2026-04-21T09:22:39+00:00",
+          "last_success_at": "2026-04-21T09:22:39+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -979,8 +981,8 @@
         "https://dev.to/sylwia-lask/16-modern-javascript-features-that-might-blow-your-mind-4h5e",
         "https://dev.to/tensorlake/claude-opus-45-vs-gpt-52-high-vs-gemini-3-pro-production-coding-test-25of"
       ],
-      "last_checked_at": "2026-04-21T06:00:39+00:00",
-      "last_success_at": "2026-04-21T06:00:39+00:00",
+      "last_checked_at": "2026-04-21T09:22:39+00:00",
+      "last_success_at": "2026-04-21T09:22:39+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/dev.to/guides",
@@ -994,10 +996,10 @@
           "last_error": "The read operation timed out"
         },
         "https://rsshub.ktachibana.party/dev.to/guides": {
-          "etag": "W/\"99c6c-7P29VjHQ1OCWsAvxGpQOwmilviw\"",
-          "last_modified": "Tue, 21 Apr 2026 06:01:26 GMT",
-          "last_checked_at": "2026-04-21T06:00:39+00:00",
-          "last_success_at": "2026-04-21T06:00:39+00:00",
+          "etag": "W/\"99c6c-1VxPy5rYhT90cvig6ouAKYVfuAc\"",
+          "last_modified": "Tue, 21 Apr 2026 09:22:47 GMT",
+          "last_checked_at": "2026-04-21T09:22:39+00:00",
+          "last_success_at": "2026-04-21T09:22:39+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -1115,8 +1117,8 @@
         "https://dev.to/hadil/how-to-run-mcp-servers-in-production-security-scaling-governance-for-ai-tooling-2hla",
         "https://dev.to/bekahhw/ai-vocab-101-eh2"
       ],
-      "last_checked_at": "2026-04-21T06:00:41+00:00",
-      "last_success_at": "2026-04-21T06:00:41+00:00",
+      "last_checked_at": "2026-04-21T09:22:40+00:00",
+      "last_success_at": "2026-04-21T09:22:40+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/dev.to/top/week",
@@ -1139,9 +1141,9 @@
         },
         "https://rsshub.ktachibana.party/dev.to/top/week": {
           "etag": "W/\"4b1c0-Ki5LSCF3PIiJF1r1DWNj3diQwqk\"",
-          "last_modified": "Tue, 21 Apr 2026 06:01:35 GMT",
-          "last_checked_at": "2026-04-21T06:00:41+00:00",
-          "last_success_at": "2026-04-21T06:00:41+00:00",
+          "last_modified": "Tue, 21 Apr 2026 09:22:58 GMT",
+          "last_checked_at": "2026-04-21T09:22:40+00:00",
+          "last_success_at": "2026-04-21T09:22:40+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -1159,7 +1161,15 @@
       "etag": "\"cf0-/6lkuELaNuX/YfrbYHEGrltRvX4\"",
       "last_modified": "Wed, 15 Apr 2026 15:04:10 GMT",
       "seen_ids": [
+        "https://www.x8xx.cn/1112.html",
+        "https://physnya.top/GR/lesson-17-power-of-gravitational-waves-2/",
+        "https://www.lindongfang.top/archives/2646/",
+        "https://ncnccn.cn/x-yan-yan/",
+        "https://ltmltm.cn/bk/1446.html",
+        "https://blog.solazy.me/20260421/",
+        "https://qianling.pw/dou+/",
         "https://www.lybblog.cn/2026/04/21/724/",
+        "https://www.ahaoyw.com/article/1057.html",
         "https://www.lybblog.cn/2026/04/21/599/",
         "https://limaomao810.com/archives/968",
         "https://acevs.com/4922/",
@@ -1450,18 +1460,10 @@
         "https://blog.uuanqin.top/p/85371005/",
         "https://www.pipishe.com/archives/264/",
         "https://4311346.com/post/2026/0413-bppv.html",
-        "https://www.ccgxk.com/emlog_dev/713.html",
-        "https://www.biibii.cn/683.html",
-        "https://www.mmbkz.cn/69dbbb3bde97d.html",
-        "https://www.fuzhoupyy.work/index.php/archives/406/",
-        "https://yefengs.com/3038.html",
-        "https://www.shiguang.xyz/post/650.html",
-        "https://bluehe.cn/archives/spring-festival-2026",
-        "https://dujun.io/96bbb94f-ab09-54c2-9e62-69c4e5e4a365.html",
-        "https://www.xvzhu.cn/archives/171.html"
+        "https://www.ccgxk.com/emlog_dev/713.html"
       ],
-      "last_checked_at": "2026-04-21T06:01:06+00:00",
-      "last_success_at": "2026-04-21T06:01:06+00:00",
+      "last_checked_at": "2026-04-21T09:22:42+00:00",
+      "last_success_at": "2026-04-21T09:22:42+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/foreverblog/feeds",
@@ -1483,10 +1485,10 @@
           "last_error": "The read operation timed out"
         },
         "https://rsshub.ktachibana.party/foreverblog/feeds": {
-          "etag": "W/\"d0f-2sPKleeKYLz/lRDtpv+2yIt2MjU\"",
-          "last_modified": "Tue, 21 Apr 2026 06:01:37 GMT",
-          "last_checked_at": "2026-04-21T06:01:06+00:00",
-          "last_success_at": "2026-04-21T06:01:06+00:00",
+          "etag": "W/\"c16-mCC8YMFmZZAllP4oWRoWSKVKxns\"",
+          "last_modified": "Tue, 21 Apr 2026 09:22:56 GMT",
+          "last_checked_at": "2026-04-21T09:22:42+00:00",
+          "last_success_at": "2026-04-21T09:22:42+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -1534,8 +1536,8 @@
         "https://github.blog/?p=94509",
         "https://github.blog/?p=94451"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://github.blog/feed/",
@@ -1543,8 +1545,8 @@
         "https://github.blog/feed/": {
           "etag": "W/\"7ae73a1ea4d871a8ff41fe57cb8934a6\"",
           "last_modified": "Mon, 20 Apr 2026 20:38:49 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 304,
           "last_error": null
         }
@@ -1670,8 +1672,8 @@
         "https://github.com/bytedance/deer-flow",
         "https://github.com/figma/mcp-server-guide"
       ],
-      "last_checked_at": "2026-04-21T06:01:13+00:00",
-      "last_success_at": "2026-04-21T06:01:13+00:00",
+      "last_checked_at": "2026-04-21T09:22:43+00:00",
+      "last_success_at": "2026-04-21T09:22:43+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/github/trending/daily/any",
@@ -1685,10 +1687,10 @@
           "last_error": "Server error '503 Service Unavailable' for url 'https://hub.slarker.me/github/trending/daily/any'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503"
         },
         "https://rsshub-balancer.virworks.moe/github/trending/daily/any": {
-          "etag": null,
-          "last_modified": null,
-          "last_checked_at": "2026-04-21T06:01:13+00:00",
-          "last_success_at": "2026-04-21T06:01:13+00:00",
+          "etag": "\"1256-GNdnKUBGPfLgzfz7kmM5VP2XP38\"",
+          "last_modified": "Tue, 21 Apr 2026 09:23:15 GMT",
+          "last_checked_at": "2026-04-21T09:22:43+00:00",
+          "last_success_at": "2026-04-21T09:22:43+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -1727,8 +1729,8 @@
       }
     },
     "github-trending-weekly": {
-      "etag": "\"1c16-oSkYV1aGXCKVyWdtq7tF9aX20Kc\"",
-      "last_modified": "Tue, 21 Apr 2026 06:01:26 GMT",
+      "etag": "\"1c16-hBNkmbins2Didodn9rQfaRn/mM8\"",
+      "last_modified": "Tue, 21 Apr 2026 09:22:50 GMT",
       "seen_ids": [
         "https://github.com/forrestchang/andrej-karpathy-skills",
         "https://github.com/NousResearch/hermes-agent",
@@ -1795,8 +1797,8 @@
         "https://github.com/louis-e/arnis",
         "https://github.com/langchain-ai/open-swe"
       ],
-      "last_checked_at": "2026-04-21T06:01:22+00:00",
-      "last_success_at": "2026-04-21T06:01:22+00:00",
+      "last_checked_at": "2026-04-21T09:22:43+00:00",
+      "last_success_at": "2026-04-21T09:22:43+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub.rssforever.com/github/trending/weekly/any",
@@ -1834,10 +1836,10 @@
           "last_error": "Server error '503 Service Unavailable' for url 'https://rsshub.ktachibana.party/github/trending/weekly/any'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503"
         },
         "https://rsshub.rssforever.com/github/trending/weekly/any": {
-          "etag": "\"1c16-oSkYV1aGXCKVyWdtq7tF9aX20Kc\"",
-          "last_modified": "Tue, 21 Apr 2026 06:01:26 GMT",
-          "last_checked_at": "2026-04-21T06:01:22+00:00",
-          "last_success_at": "2026-04-21T06:01:22+00:00",
+          "etag": "\"1c16-hBNkmbins2Didodn9rQfaRn/mM8\"",
+          "last_modified": "Tue, 21 Apr 2026 09:22:50 GMT",
+          "last_checked_at": "2026-04-21T09:22:43+00:00",
+          "last_success_at": "2026-04-21T09:22:43+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -1866,8 +1868,8 @@
         "97585a1ae2c742c289aa567602760506",
         "0ca2b2d2153548898b4bbab9e4c68a7c"
       ],
-      "last_checked_at": "2026-04-21T06:01:22+00:00",
-      "last_success_at": "2026-04-21T06:01:22+00:00",
+      "last_checked_at": "2026-04-21T09:22:44+00:00",
+      "last_success_at": "2026-04-21T09:22:44+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://rsshub.ktachibana.party/hellogithub/article",
@@ -1883,17 +1885,21 @@
         "https://rsshub.ktachibana.party/hellogithub/article": {
           "etag": "\"1f34-wbWnVxizQI9eCkRyvcM+kExq5WE\"",
           "last_modified": "Fri, 27 Mar 2026 12:50:16 GMT",
-          "last_checked_at": "2026-04-21T06:01:22+00:00",
-          "last_success_at": "2026-04-21T06:01:22+00:00",
+          "last_checked_at": "2026-04-21T09:22:44+00:00",
+          "last_success_at": "2026-04-21T09:22:44+00:00",
           "last_http_status": 304,
           "last_error": null
         }
       }
     },
     "infoq-recommend": {
-      "etag": "W/\"512db-UT2ejry+98Lq9XLUTZQ7k/0iFMQ\"",
-      "last_modified": "Tue, 21 Apr 2026 05:49:10 GMT",
+      "etag": "W/\"59cb2-4RxPwbvG3wJ3JK9oOB5+FBMpWEI\"",
+      "last_modified": "Tue, 21 Apr 2026 09:19:22 GMT",
       "seen_ids": [
+        "https://www.infoq.cn/article/QyXUMEdTVvStcoE1bBZK",
+        "https://www.infoq.cn/article/dGEQOcGXJRdBxkvXzhCl",
+        "https://www.infoq.cn/article/5mM7VODr7TttHPVwklzl",
+        "https://www.infoq.cn/article/TH0QVHpvVGZ7VP3hAEmm",
         "https://www.infoq.cn/article/ho3Qjql4dzSwA1loVMMY",
         "https://www.infoq.cn/article/LJBaR3H17qK6XVwTNVH0",
         "https://www.infoq.cn/article/z4MLOC3NU0xbYcYaVVQL",
@@ -2163,17 +2169,17 @@
         "https://www.infoq.cn/article/TLJa16KNgIXb1HB1Nvtg",
         "https://www.infoq.cn/article/D1ZIFEbcxoHVOvp8oZ87"
       ],
-      "last_checked_at": "2026-04-21T06:01:26+00:00",
-      "last_success_at": "2026-04-21T06:01:26+00:00",
+      "last_checked_at": "2026-04-21T09:22:48+00:00",
+      "last_success_at": "2026-04-21T09:22:48+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/infoq/recommend",
       "sources": {
         "https://rsshub-balancer.virworks.moe/infoq/recommend": {
-          "etag": "W/\"512db-UT2ejry+98Lq9XLUTZQ7k/0iFMQ\"",
-          "last_modified": "Tue, 21 Apr 2026 05:49:10 GMT",
-          "last_checked_at": "2026-04-21T06:01:26+00:00",
-          "last_success_at": "2026-04-21T06:01:26+00:00",
+          "etag": "W/\"59cb2-4RxPwbvG3wJ3JK9oOB5+FBMpWEI\"",
+          "last_modified": "Tue, 21 Apr 2026 09:19:22 GMT",
+          "last_checked_at": "2026-04-21T09:22:48+00:00",
+          "last_success_at": "2026-04-21T09:22:48+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -2188,15 +2194,17 @@
       }
     },
     "ithome-ranking-24h": {
-      "etag": "\"2869f-0bZH2qh6MyT1Rx4w6F94Bymv5Yw\"",
-      "last_modified": "Tue, 21 Apr 2026 06:01:25 GMT",
+      "etag": "\"28a11-Gkxr4giFw0S+0WBrUW1WrPvg6RA\"",
+      "last_modified": "Tue, 21 Apr 2026 09:20:48 GMT",
       "seen_ids": [
         "https://www.ithome.com/0/941/380.htm",
+        "https://www.ithome.com/0/941/340.htm",
         "https://www.ithome.com/0/941/328.htm",
         "https://www.ithome.com/0/941/320.htm",
         "https://www.ithome.com/0/941/312.htm",
         "https://www.ithome.com/0/941/297.htm",
         "https://www.ithome.com/0/941/280.htm",
+        "https://www.ithome.com/0/941/250.htm",
         "https://www.ithome.com/0/941/238.htm",
         "https://www.ithome.com/0/941/233.htm",
         "https://www.ithome.com/0/941/208.htm",
@@ -2488,21 +2496,19 @@
         "https://www.ithome.com/0/936/197.htm",
         "https://www.ithome.com/0/936/179.htm",
         "https://www.ithome.com/0/936/175.htm",
-        "https://www.ithome.com/0/936/171.htm",
-        "https://www.ithome.com/0/936/165.htm",
-        "https://www.ithome.com/0/936/164.htm"
+        "https://www.ithome.com/0/936/171.htm"
       ],
-      "last_checked_at": "2026-04-21T06:01:27+00:00",
-      "last_success_at": "2026-04-21T06:01:27+00:00",
+      "last_checked_at": "2026-04-21T09:22:50+00:00",
+      "last_success_at": "2026-04-21T09:22:50+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/ithome/ranking/24h",
       "sources": {
         "https://rsshub-balancer.virworks.moe/ithome/ranking/24h": {
-          "etag": "\"2869f-0bZH2qh6MyT1Rx4w6F94Bymv5Yw\"",
-          "last_modified": "Tue, 21 Apr 2026 06:01:25 GMT",
-          "last_checked_at": "2026-04-21T06:01:27+00:00",
-          "last_success_at": "2026-04-21T06:01:27+00:00",
+          "etag": "\"28a11-Gkxr4giFw0S+0WBrUW1WrPvg6RA\"",
+          "last_modified": "Tue, 21 Apr 2026 09:20:48 GMT",
+          "last_checked_at": "2026-04-21T09:22:50+00:00",
+          "last_success_at": "2026-04-21T09:22:50+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -2567,8 +2573,8 @@
         "https://github.com/imjuya/juya-ai-daily/issues/19",
         "https://github.com/imjuya/juya-ai-daily/issues/18"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://imjuya.github.io/juya-ai-daily/rss.xml",
@@ -2576,16 +2582,16 @@
         "https://imjuya.github.io/juya-ai-daily/rss.xml": {
           "etag": "W/\"69e6ce64-1aeec0\"",
           "last_modified": "Tue, 21 Apr 2026 01:09:56 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 304,
           "last_error": null
         }
       }
     },
     "kiro-blog": {
-      "etag": null,
-      "last_modified": null,
+      "etag": "W/\"213528-CIAZfMj/9/fAUszjsahTXn5Hw7E\"",
+      "last_modified": "Tue, 21 Apr 2026 09:23:12 GMT",
       "seen_ids": [
         "https://kiro.dev/blog/opus-4-7/",
         "https://kiro.dev/blog/root-cause-in-33s/",
@@ -2616,8 +2622,8 @@
         "https://kiro.dev/blog/property-based-testing-fixed-security-bug/",
         "https://kiro.dev/blog/multi-root-workspaces/"
       ],
-      "last_checked_at": "2026-04-21T06:01:28+00:00",
-      "last_success_at": "2026-04-21T06:01:28+00:00",
+      "last_checked_at": "2026-04-21T09:22:50+00:00",
+      "last_success_at": "2026-04-21T09:22:50+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/kiro/blog",
@@ -2631,10 +2637,10 @@
           "last_error": "The read operation timed out"
         },
         "https://rsshub-balancer.virworks.moe/kiro/blog": {
-          "etag": null,
-          "last_modified": null,
-          "last_checked_at": "2026-04-21T06:01:28+00:00",
-          "last_success_at": "2026-04-21T06:01:28+00:00",
+          "etag": "W/\"213528-CIAZfMj/9/fAUszjsahTXn5Hw7E\"",
+          "last_modified": "Tue, 21 Apr 2026 09:23:12 GMT",
+          "last_checked_at": "2026-04-21T09:22:50+00:00",
+          "last_success_at": "2026-04-21T09:22:50+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -2674,8 +2680,8 @@
         "https://lala.im/?p=9973",
         "https://lala.im/?p=9956"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://lala.im/feed",
@@ -2683,16 +2689,16 @@
         "https://lala.im/feed": {
           "etag": "\"8aca019e67dbf7474dd6e0b4a0d0a1a5\"",
           "last_modified": "Sun, 19 Apr 2026 07:54:12 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 304,
           "last_error": null
         }
       }
     },
     "linux-do-hot": {
-      "etag": "W/\"40d2c49383824a47f714214f6bd77c0a\"",
-      "last_modified": "Tue, 21 Apr 2026 04:15:15 GMT",
+      "etag": "W/\"e0ccb9855f0715f0f74c8c1e7075d74f\"",
+      "last_modified": "Tue, 21 Apr 2026 07:15:13 GMT",
       "seen_ids": [
         "linux.do-topic-2006734",
         "linux.do-topic-2006697",
@@ -2995,17 +3001,17 @@
         "linux.do-topic-1951229",
         "linux.do-topic-1950850"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:38+00:00",
+      "last_success_at": "2026-04-21T09:22:38+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://linuxdorss.longpink.com/top.xml",
       "sources": {
         "https://linuxdorss.longpink.com/top.xml": {
-          "etag": "W/\"40d2c49383824a47f714214f6bd77c0a\"",
-          "last_modified": "Tue, 21 Apr 2026 04:15:15 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "etag": "W/\"e0ccb9855f0715f0f74c8c1e7075d74f\"",
+          "last_modified": "Tue, 21 Apr 2026 07:15:13 GMT",
+          "last_checked_at": "2026-04-21T09:22:38+00:00",
+          "last_success_at": "2026-04-21T09:22:38+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -3118,8 +3124,8 @@
         "https://openai.com/index/harness-engineering",
         "https://openai.com/index/cyber-agent"
       ],
-      "last_checked_at": "2026-04-21T06:00:34+00:00",
-      "last_success_at": "2026-04-21T06:00:34+00:00",
+      "last_checked_at": "2026-04-21T09:22:38+00:00",
+      "last_success_at": "2026-04-21T09:22:38+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://openai.com/news/rss.xml",
@@ -3127,16 +3133,16 @@
         "https://openai.com/news/rss.xml": {
           "etag": null,
           "last_modified": null,
-          "last_checked_at": "2026-04-21T06:00:34+00:00",
-          "last_success_at": "2026-04-21T06:00:34+00:00",
+          "last_checked_at": "2026-04-21T09:22:38+00:00",
+          "last_success_at": "2026-04-21T09:22:38+00:00",
           "last_http_status": 200,
           "last_error": null
         }
       }
     },
     "qwen-blog-zh": {
-      "etag": null,
-      "last_modified": null,
+      "etag": "W/\"1b798-10bCidXpa5QcbaR85DizRaNnsu4\"",
+      "last_modified": "Tue, 21 Apr 2026 09:19:58 GMT",
       "seen_ids": [
         "https://qwenlm.github.io/zh/blog/qwen3guard/",
         "https://qwenlm.github.io/zh/blog/qwen-image-edit/",
@@ -3144,17 +3150,17 @@
         "https://qwenlm.github.io/zh/blog/gspo/",
         "https://qwenlm.github.io/zh/blog/qwen-mt/"
       ],
-      "last_checked_at": "2026-04-21T06:01:29+00:00",
-      "last_success_at": "2026-04-21T06:01:29+00:00",
+      "last_checked_at": "2026-04-21T09:22:51+00:00",
+      "last_success_at": "2026-04-21T09:22:51+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/qwenlm/blog/zh",
       "sources": {
         "https://rsshub-balancer.virworks.moe/qwenlm/blog/zh": {
-          "etag": null,
-          "last_modified": null,
-          "last_checked_at": "2026-04-21T06:01:29+00:00",
-          "last_success_at": "2026-04-21T06:01:29+00:00",
+          "etag": "W/\"1b798-10bCidXpa5QcbaR85DizRaNnsu4\"",
+          "last_modified": "Tue, 21 Apr 2026 09:19:58 GMT",
+          "last_checked_at": "2026-04-21T09:22:51+00:00",
+          "last_success_at": "2026-04-21T09:22:51+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -3444,9 +3450,9 @@
         "readhub-8rm90ix6pcv",
         "readhub-8rmOiZ68GlO"
       ],
-      "last_checked_at": "2026-04-21T06:01:29+00:00",
-      "last_success_at": "2026-04-21T06:01:29+00:00",
-      "last_http_status": 200,
+      "last_checked_at": "2026-04-21T09:22:56+00:00",
+      "last_success_at": "2026-04-21T09:22:56+00:00",
+      "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/readhub/daily",
       "sources": {
@@ -3461,9 +3467,9 @@
         "https://rsshub-balancer.virworks.moe/readhub/daily": {
           "etag": "\"199f-4izMQKs2c4kklSXPCWDYb0lJnUQ\"",
           "last_modified": "Tue, 21 Apr 2026 05:59:43 GMT",
-          "last_checked_at": "2026-04-21T06:01:29+00:00",
-          "last_success_at": "2026-04-21T06:01:29+00:00",
-          "last_http_status": 200,
+          "last_checked_at": "2026-04-21T09:22:56+00:00",
+          "last_success_at": "2026-04-21T09:22:56+00:00",
+          "last_http_status": 304,
           "last_error": null
         },
         "https://rsshub.ktachibana.party/readhub/daily": {
@@ -3499,8 +3505,8 @@
         "http://www.ruanyifeng.com/blog/2026/03/weekly-issue-387.html",
         "http://www.ruanyifeng.com/blog/2026/02/weekly-issue-386.html"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://feeds.feedburner.com/ruanyifeng",
@@ -3508,17 +3514,18 @@
         "https://feeds.feedburner.com/ruanyifeng": {
           "etag": null,
           "last_modified": "Fri, 17 Apr 2026 03:39:01 GMT",
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 200,
           "last_error": null
         }
       }
     },
     "ruanyifeng-weekly-issues": {
-      "etag": "W/\"3a5f6-4p7J5RFEqQ3ICEWqpWduQQovHZg\"",
-      "last_modified": "Tue, 21 Apr 2026 05:15:33 GMT",
+      "etag": "W/\"3a6fc-+WqXOZH1aQfIsGXFtMkdd4BKid8\"",
+      "last_modified": "Tue, 21 Apr 2026 09:17:17 GMT",
       "seen_ids": [
+        "https://github.com/ruanyf/weekly/issues/9704",
         "https://github.com/ruanyf/weekly/issues/9703",
         "https://github.com/ruanyf/weekly/issues/9702",
         "https://github.com/ruanyf/weekly/issues/9700",
@@ -3817,11 +3824,10 @@
         "https://github.com/ruanyf/weekly/issues/9390",
         "https://github.com/ruanyf/weekly/issues/9389",
         "https://github.com/ruanyf/weekly/issues/9388",
-        "https://github.com/ruanyf/weekly/issues/9387",
-        "https://github.com/ruanyf/weekly/issues/9386"
+        "https://github.com/ruanyf/weekly/issues/9387"
       ],
-      "last_checked_at": "2026-04-21T06:01:12+00:00",
-      "last_success_at": "2026-04-21T06:01:12+00:00",
+      "last_checked_at": "2026-04-21T09:22:42+00:00",
+      "last_success_at": "2026-04-21T09:22:42+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/github/issue/ruanyf/weekly",
@@ -3835,10 +3841,10 @@
           "last_error": "The read operation timed out"
         },
         "https://rsshub-balancer.virworks.moe/github/issue/ruanyf/weekly": {
-          "etag": "W/\"3a5f6-4p7J5RFEqQ3ICEWqpWduQQovHZg\"",
-          "last_modified": "Tue, 21 Apr 2026 05:15:33 GMT",
-          "last_checked_at": "2026-04-21T06:01:12+00:00",
-          "last_success_at": "2026-04-21T06:01:12+00:00",
+          "etag": "W/\"3a6fc-+WqXOZH1aQfIsGXFtMkdd4BKid8\"",
+          "last_modified": "Tue, 21 Apr 2026 09:17:17 GMT",
+          "last_checked_at": "2026-04-21T09:22:42+00:00",
+          "last_success_at": "2026-04-21T09:22:42+00:00",
           "last_http_status": 200,
           "last_error": null
         },
@@ -3918,8 +3924,8 @@
         "https://rustcc.cn/article?id=ebb62462-6fbb-4b1c-83d4-cd58cad7e726",
         "https://rustcc.cn/article?id=26b2d3d7-9581-45ba-8a2a-e784748ef931"
       ],
-      "last_checked_at": "2026-04-21T06:01:31+00:00",
-      "last_success_at": "2026-04-21T06:01:31+00:00",
+      "last_checked_at": "2026-04-21T09:23:02+00:00",
+      "last_success_at": "2026-04-21T09:23:02+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://rustcc.cn/rss",
@@ -3927,8 +3933,8 @@
         "https://rustcc.cn/rss": {
           "etag": null,
           "last_modified": null,
-          "last_checked_at": "2026-04-21T06:01:31+00:00",
-          "last_success_at": "2026-04-21T06:01:31+00:00",
+          "last_checked_at": "2026-04-21T09:23:02+00:00",
+          "last_success_at": "2026-04-21T09:23:02+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -3969,8 +3975,8 @@
         "https://blog.sorrycc.com/how-to-get-agent-tools",
         "https://blog.sorrycc.com/dynamic-context-discovery"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://blog.sorrycc.com/api/feed",
@@ -3978,8 +3984,8 @@
         "https://blog.sorrycc.com/api/feed": {
           "etag": null,
           "last_modified": null,
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 200,
           "last_error": null
         }
@@ -4081,9 +4087,9 @@
         "https://sspai.com/post/65228",
         "https://sspai.com/post/107743"
       ],
-      "last_checked_at": "2026-04-21T06:01:30+00:00",
-      "last_success_at": "2026-04-21T06:01:30+00:00",
-      "last_http_status": 200,
+      "last_checked_at": "2026-04-21T09:22:59+00:00",
+      "last_success_at": "2026-04-21T09:22:59+00:00",
+      "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://rsshub-balancer.virworks.moe/sspai/index",
       "sources": {
@@ -4098,9 +4104,9 @@
         "https://rsshub-balancer.virworks.moe/sspai/index": {
           "etag": "\"32f80-Cngr50HzjX3xmPVYaU+g8DbFhNA\"",
           "last_modified": "Tue, 21 Apr 2026 05:58:29 GMT",
-          "last_checked_at": "2026-04-21T06:01:30+00:00",
-          "last_success_at": "2026-04-21T06:01:30+00:00",
-          "last_http_status": 200,
+          "last_checked_at": "2026-04-21T09:22:59+00:00",
+          "last_success_at": "2026-04-21T09:22:59+00:00",
+          "last_http_status": 304,
           "last_error": null
         },
         "https://rsshub.ktachibana.party/sspai/index": {
@@ -4157,8 +4163,8 @@
         "https://supertechfans.com/cn/post/2026-03-23-HackerNews/",
         "https://supertechfans.com/cn/post/2026-03-22-HackerNews/"
       ],
-      "last_checked_at": "2026-04-21T06:01:32+00:00",
-      "last_success_at": "2026-04-21T06:01:32+00:00",
+      "last_checked_at": "2026-04-21T09:23:02+00:00",
+      "last_success_at": "2026-04-21T09:23:02+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://www.supertechfans.com/cn/index.xml",
@@ -4166,8 +4172,8 @@
         "https://www.supertechfans.com/cn/index.xml": {
           "etag": "W/\"d89db3b2b860603fcd73f9c672f40ead\"",
           "last_modified": "Mon, 20 Apr 2026 23:51:23 GMT",
-          "last_checked_at": "2026-04-21T06:01:32+00:00",
-          "last_success_at": "2026-04-21T06:01:32+00:00",
+          "last_checked_at": "2026-04-21T09:23:02+00:00",
+          "last_success_at": "2026-04-21T09:23:02+00:00",
           "last_http_status": 304,
           "last_error": null
         }
@@ -4204,8 +4210,8 @@
         "https://blog.devtang.com/2025/07/30/truth-does-not-matter/",
         "https://blog.devtang.com/2025/06/22/build-your-own-dopamine-system/"
       ],
-      "last_checked_at": "2026-04-21T06:00:33+00:00",
-      "last_success_at": "2026-04-21T06:00:33+00:00",
+      "last_checked_at": "2026-04-21T09:22:37+00:00",
+      "last_success_at": "2026-04-21T09:22:37+00:00",
       "last_http_status": 304,
       "last_error": null,
       "last_success_source": "https://blog.devtang.com/atom.xml",
@@ -4213,33 +4219,43 @@
         "https://blog.devtang.com/atom.xml": {
           "etag": "W/\"c7c40cd859ad5ac76beb11997857a214\"",
           "last_modified": null,
-          "last_checked_at": "2026-04-21T06:00:33+00:00",
-          "last_success_at": "2026-04-21T06:00:33+00:00",
+          "last_checked_at": "2026-04-21T09:22:37+00:00",
+          "last_success_at": "2026-04-21T09:22:37+00:00",
           "last_http_status": 304,
           "last_error": null
         }
       }
     },
     "v2ex-tech": {
-      "etag": "W/\"ca8b3a3cd870130300cbfb0804c3f9471da85e9f\"",
+      "etag": "W/\"31e72e55357133206b8b58364359ca936a2bbdea\"",
       "last_modified": null,
       "seen_ids": [
-        "tag:www.v2ex.com,2026-04-20:/t/1207109",
+        "tag:www.v2ex.com,2026-04-21:/t/1207527",
+        "tag:www.v2ex.com,2026-04-21:/t/1207519",
         "tag:www.v2ex.com,2026-04-21:/t/1207342",
-        "tag:www.v2ex.com,2026-04-21:/t/1207379",
-        "tag:www.v2ex.com,2026-04-21:/t/1207449",
+        "tag:www.v2ex.com,2026-04-21:/t/1207513",
+        "tag:www.v2ex.com,2026-04-21:/t/1207518",
         "tag:www.v2ex.com,2026-04-21:/t/1207380",
+        "tag:www.v2ex.com,2026-04-21:/t/1207390",
+        "tag:www.v2ex.com,2026-04-21:/t/1207381",
+        "tag:www.v2ex.com,2026-04-21:/t/1207447",
+        "tag:www.v2ex.com,2026-04-21:/t/1207449",
+        "tag:www.v2ex.com,2026-04-21:/t/1207379",
+        "tag:www.v2ex.com,2026-04-21:/t/1207453",
+        "tag:www.v2ex.com,2026-04-21:/t/1207507",
+        "tag:www.v2ex.com,2026-04-21:/t/1207469",
+        "tag:www.v2ex.com,2026-04-21:/t/1207484",
+        "tag:www.v2ex.com,2026-04-21:/t/1207440",
+        "tag:www.v2ex.com,2026-04-21:/t/1207472",
+        "tag:www.v2ex.com,2026-04-21:/t/1207427",
+        "tag:www.v2ex.com,2026-04-21:/t/1207482",
+        "tag:www.v2ex.com,2026-04-21:/t/1207476",
+        "tag:www.v2ex.com,2026-04-20:/t/1207109",
         "tag:www.v2ex.com,2026-04-18:/t/1206842",
         "tag:www.v2ex.com,2026-04-21:/t/1207444",
-        "tag:www.v2ex.com,2026-04-21:/t/1207453",
-        "tag:www.v2ex.com,2026-04-21:/t/1207440",
         "tag:www.v2ex.com,2026-04-20:/t/1207240",
-        "tag:www.v2ex.com,2026-04-21:/t/1207447",
-        "tag:www.v2ex.com,2026-04-21:/t/1207427",
         "tag:www.v2ex.com,2026-04-21:/t/1207431",
-        "tag:www.v2ex.com,2026-04-21:/t/1207381",
         "tag:www.v2ex.com,2026-04-21:/t/1207371",
-        "tag:www.v2ex.com,2026-04-21:/t/1207390",
         "tag:www.v2ex.com,2026-04-21:/t/1207403",
         "tag:www.v2ex.com,2026-04-21:/t/1207348",
         "tag:www.v2ex.com,2026-04-20:/t/1207253",
@@ -4513,29 +4529,19 @@
         "tag:www.v2ex.com,2026-04-13:/t/1205592",
         "tag:www.v2ex.com,2026-04-13:/t/1205428",
         "tag:www.v2ex.com,2026-04-13:/t/1205572",
-        "tag:www.v2ex.com,2026-04-13:/t/1205502",
-        "tag:www.v2ex.com,2026-04-13:/t/1205576",
-        "tag:www.v2ex.com,2026-04-13:/t/1205622",
-        "tag:www.v2ex.com,2026-04-12:/t/1205344",
-        "tag:www.v2ex.com,2026-04-13:/t/1205523",
-        "tag:www.v2ex.com,2026-04-13:/t/1205517",
-        "tag:www.v2ex.com,2026-04-13:/t/1205483",
-        "tag:www.v2ex.com,2026-04-13:/t/1205381",
-        "tag:www.v2ex.com,2026-04-13:/t/1205506",
-        "tag:www.v2ex.com,2026-04-13:/t/1205431",
-        "tag:www.v2ex.com,2026-04-13:/t/1205438"
+        "tag:www.v2ex.com,2026-04-13:/t/1205502"
       ],
-      "last_checked_at": "2026-04-21T06:01:32+00:00",
-      "last_success_at": "2026-04-21T06:01:32+00:00",
+      "last_checked_at": "2026-04-21T09:23:03+00:00",
+      "last_success_at": "2026-04-21T09:23:03+00:00",
       "last_http_status": 200,
       "last_error": null,
       "last_success_source": "https://www.v2ex.com/feed/tab/tech.xml",
       "sources": {
         "https://www.v2ex.com/feed/tab/tech.xml": {
-          "etag": "W/\"ca8b3a3cd870130300cbfb0804c3f9471da85e9f\"",
+          "etag": "W/\"31e72e55357133206b8b58364359ca936a2bbdea\"",
           "last_modified": null,
-          "last_checked_at": "2026-04-21T06:01:32+00:00",
-          "last_success_at": "2026-04-21T06:01:32+00:00",
+          "last_checked_at": "2026-04-21T09:23:03+00:00",
+          "last_success_at": "2026-04-21T09:23:03+00:00",
           "last_http_status": 200,
           "last_error": null
         }
